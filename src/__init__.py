@@ -1,4 +1,4 @@
 #!/usr/bin/python3
 # ------------------------------------------------------------------------------
 
-from .dropbox import Dropbox
+from src import *

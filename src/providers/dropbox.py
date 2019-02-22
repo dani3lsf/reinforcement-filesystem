@@ -1,7 +1,11 @@
+#!/usr/bin/python3
+# ------------------------------------------------------------------------------
+
 import logging
 import configparser
 import dropbox
 import os
+
 
 class Dropbox:
     """This class represents the Dropbox client.
@@ -9,6 +13,7 @@ class Dropbox:
     Manage Dropbox interactions through the API v2.
 
     """
+
     class __Dropbox:
         """This class is a singleton to allow to only have one instance of the dropbox class.
         """
@@ -33,14 +38,55 @@ class Dropbox:
             Dropbox.instance = Dropbox.__Dropbox()
             super().__init__()
 
-    """Create a directory.
-    As dropbox automatically create parent folder in puts, this method is useless.
+    """Generates a dictionary given an object of metadata.
     
     Args:
-        path (str): The path which the folder should be created.
+        file_md: Object of metadata.
     """
-    def create(self, path):
-        self.logger.info("Create path:" + path)
+    def gen_dict(self, metadata):
+        result = {}
+        for key in dir(metadata):
+            if not key.startswith('_'):
+                attr = getattr(metadata, key)
+                if isinstance(attr, list):
+                    tmp = []
+                    for item in attr:
+                        tmp.append(self.gen_dict(item))
+                    result[key] = tmp
+                else:
+                    result[key] = attr
+
+        return result
+
+    """Obtains the metadata of a given file or folder.
+    
+    Args:
+        path: Path to the desired file or folder.
+    """
+    def get_metadata(self, path):
+        if path == '/':
+            path = ''
+        elif not path.startswith('/'):
+            path = '/' + path
+
+        try:
+            result = None
+            md = self.api_client.files_list_folder(path)
+            result = self.gen_dict(md)
+
+        except dropbox.exceptions.ApiError as err:
+            if err.error.is_path() and err.error.get_path()._tag == 'not_folder':
+                md = self.api_client.files_get_metadata(path)
+                result = self.gen_dict(md)
+                result['path'] = path
+            else:
+                return
+
+        if 'entries' in result:
+            for file in result.get('entries'):
+                file['path'] = file.get('path_display')
+
+        return result
 
     """Upload a file.
     
