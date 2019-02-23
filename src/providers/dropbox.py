@@ -127,6 +127,11 @@ class Dropbox:
         path (str): The path in the provider which should be deleted.
     """
     def delete(self, path):
+        if path == '/':
+            path = ''
+        elif not path.startswith('/'):
+            path = '/' + path
+
         self.logger.info("Delete path: {}".format(path))
         try:
             self.api_client.files_delete(path)
@@ -145,3 +150,55 @@ class Dropbox:
             self.api_client.files_move(from_path, to_path)
         except dropbox.exceptions.ApiError as err:
             self.logger.error('*** DELETE *** {}'.format(err))
+
+#============================
+      # Upload chunk of data to Dropbox.
+    def dbxChunkedUpload(self, data, upload_id, offset=0):
+        if upload_id == "":
+          result = self.api_client.files_upload_session_start(data)
+        else:
+          cursor = dropbox.files.UploadSessionCursor(upload_id, offset)
+          result = self.api_client.files_upload_session_append_v2(data, cursor)
+
+        result = self.dbxStruct(result)
+        result.update({'offset': offset+len(data), 'upload_id': result['session_id']})
+
+        return result
+
+      # Commit chunked upload to Dropbox.
+    def dbxCommitChunkedUpload(self, path, upload_id, offset, overwrite=True):
+        mode = (dropbox.files.WriteMode.overwrite
+                if overwrite
+                else dropbox.files.WriteMode.add)
+        cursor = dropbox.files.UploadSessionCursor(upload_id, offset)
+        commitinfo = dropbox.files.CommitInfo(path,mode=mode)
+        result = self.api_client.files_upload_session_finish("".encode(), cursor, commitinfo)
+        result = self.dbxStruct(result)
+
+        return result
+
+      # Get Dropbox filehandle.
+    def dbxFilehandle(self, path, seek=False):
+        result = self.api_client.files_download(path)[1].raw
+        return result
+
+    def dbxStruct(self, obj):
+        structname = obj.__class__.__name__
+        data = {}
+
+        for key in dir(obj):
+          if not key.startswith('_'):
+            if isinstance(getattr(obj, key), list):
+              tmpdata = []
+              for item in getattr(obj, key):
+                tmpdata.append(self.dbxStruct(item))
+              data.update({key: tmpdata})
+            else:
+              data.update({key: getattr(obj, key)})
+
+        if structname == 'FolderMetadata':
+          data.update({'.tag': 'folder'})
+        if structname == 'FileMetadata':
+          data.update({'.tag': 'file'})
+
+        return data
