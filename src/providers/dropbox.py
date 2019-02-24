@@ -41,7 +41,7 @@ class Dropbox:
     """Generates a dictionary given an object of metadata.
     
     Args:
-        file_md: Object of metadata.
+        metadata: Object of metadata.
     """
     def gen_dict(self, metadata):
         result = {}
@@ -57,6 +57,7 @@ class Dropbox:
                     result[key] = attr
 
         return result
+
 
     """Obtains the metadata of a given file or folder.
     
@@ -127,6 +128,11 @@ class Dropbox:
         path (str): The path in the provider which should be deleted.
     """
     def delete(self, path):
+        if path == '/':
+            path = ''
+        elif not path.startswith('/'):
+            path = '/' + path
+
         self.logger.info("Delete path: {}".format(path))
         try:
             self.api_client.files_delete(path)
@@ -145,3 +151,52 @@ class Dropbox:
             self.api_client.files_move(from_path, to_path)
         except dropbox.exceptions.ApiError as err:
             self.logger.error('*** DELETE *** {}'.format(err))
+
+    """Upload chunk of data to Dropbox.
+    
+    Args:
+        data: Bytes to upload.
+        upload_id: A unique identifier for the upload session. 
+        offset: The amount of data that has been uploaded so far.
+    """
+    def chunked_upload(self, data, upload_id, offset=0):
+        if upload_id == "":
+          result = self.api_client.files_upload_session_start(data)
+        else:
+          cursor = dropbox.files.UploadSessionCursor(upload_id, offset)
+          result = self.api_client.files_upload_session_append_v2(data, cursor)
+
+        result = self.gen_dict(result)
+        result.update({'offset': offset+len(data), 'upload_id': result['session_id']})
+
+        return result
+
+    """Commit chunked upload to Dropbox.
+    
+    Args:
+        path: Path.
+        upload_id: A unique identifier for the upload session. 
+        offset: The amount of data that has been uploaded so far.
+        overwrite: Overwrite file or not.
+    """
+    def commit_chunked_upload(self, path, upload_id, offset, overwrite=True):
+        mode = (dropbox.files.WriteMode.overwrite
+                if overwrite
+                else dropbox.files.WriteMode.add)
+        cursor = dropbox.files.UploadSessionCursor(upload_id, offset)
+        commitinfo = dropbox.files.CommitInfo(path,mode=mode)
+        result = self.api_client.files_upload_session_finish("".encode(), cursor, commitinfo)
+        result = self.gen_dict(result)
+
+        return result
+
+    """Get Dropbox filehandle.
+    
+    Args:
+        path: Path.
+        seek: TODO
+    """
+    def file_handle(self, path, seek=False):
+        result = self.api_client.files_download(path)[1].raw
+        return result
+
