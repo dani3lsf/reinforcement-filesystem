@@ -19,7 +19,6 @@ class Passthrough(Operations):
         self.gid = os.getgid()
         self.openfh = {}
         self.runfh = {}
-        self.cache = {}
         self.write_cache = 4194304 # Bytes
   
 
@@ -80,7 +79,7 @@ class Passthrough(Operations):
                 'st_atime': now,
                 'st_ctime': modified,
                 'st_gid': self.gid,
-                'st_mode': stat.S_IFREG | 0o666,
+                'st_mode': stat.S_IFREG | 0o644,
                 'st_mtime': modified,
                 'st_nlink': 1,
                 'st_size': metadata.get('size'),
@@ -136,8 +135,8 @@ class Passthrough(Operations):
 
       # Remove a file.
     def unlink(self, path):
-      self.dbx.delete(path)
-      return 0
+        self.dbx.delete(path)
+        return 0
 
     # def symlink(self, name, target):
     #     return os.symlink(name, self._full_path(target))
@@ -166,32 +165,24 @@ class Passthrough(Operations):
         if flags & os.O_APPEND:
           raise FuseOSError(EOPNOTSUPP)
 
-        fh = self.getFH('r')
+        fh = self.get_fh('r')
         return fh
 
 
     def create(self, path, mode):
 
-        fh = self.getFH('w')
-
+        fh = self.get_fh('w')
         now = datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
-        cachedfh = {'size':0, 'client_modified':now, 'path':path, '.tag':'file'}
-        self.cache[path] = cachedfh
-       # data = os.open(os.path.join(self.root, path[1:]), os.O_WRONLY | os.O_CREAT, mode)
-        self.openfh[fh]['f'] = {
-            'upload_id':"",
-            'offset':0,
-            'buf': "".encode()
-        }
+
         self.dbx.put("".encode(),path,True)
+
         return fh
 
 
 
-
-      # Read data from a remote filehandle.
+    # Read data from a remote filehandle.
     def read(self, path, length, offset, fh):
-        #path = path.encode('utf-8')
+
         # Wait while this function is not threadable.
         while self.openfh[fh]['lock'] == True:
           pass
@@ -199,23 +190,18 @@ class Passthrough(Operations):
         self.runfh[fh] = True
 
         if fh in self.openfh:
-          if self.openfh[fh]['f'] == False:
-            try:
-              self.openfh[fh]['f'] = self.dbx.dbxFilehandle(path, offset)
-            except Exception:
-              raise FuseOSError(EIO)
-          else:
-            if self.openfh[fh]['eoffset'] != offset:
-              self.openfh[fh]['f'] = self.dbx.dbxFilehandle(path, offset)
-            pass
+            if self.openfh[fh]['f'] == False:
+                try:
+                    self.openfh[fh]['f'] = self.dbx.file_handle(path, offset)
+                except Exception:
+                    raise FuseOSError(EIO)
+            else:
+                if self.openfh[fh]['eoffset'] != offset:
+                    self.openfh[fh]['f'] = self.dbx.file_handle(path, offset)
+                pass
 
         # Read from FH.
-        rbytes = ''
-        try:
-          rbytes = self.openfh[fh]['f'].read(length)
-        except Exception:
-          appLog('error', 'Could not read data from remotefile: ' + path, traceback.format_exc())
-          raise FuseOSError(EIO)
+        rbytes = self.openfh[fh]['f'].read(length)
 
         self.openfh[fh]['lock'] = False
         self.runfh[fh] = False
@@ -226,31 +212,27 @@ class Passthrough(Operations):
 
     def write(self, path, buf, offset, fh):
         try:
-          # Check for the beginning of the file.
-          if fh in self.openfh:
-            if self.openfh[fh]['f'] == False:
-              # Check if the write request exceeds the maximum buffer size.
-              if len(buf) >= self.write_cache or len(buf) < 4096:
-                result = self.dbx.dbxChunkedUpload(buf, "", 0)
-                self.openfh[fh]['f'] = {'upload_id':result['upload_id'], 'offset':result['offset'], 'buf':''}
-              else:
-                self.openfh[fh]['f'] = {'upload_id':'', 'offset':0, 'buf':buf}
-              return len(buf)
+            # Check for the beginning of the file.
+            if fh in self.openfh:
+                if self.openfh[fh]['f'] == False:
+                    # Check if the write request exceeds the maximum buffer size.
+                    if len(buf) >= self.write_cache or len(buf) < 4096:
+                        result = self.dbx.chunked_upload(buf, "", 0)
+                        self.openfh[fh]['f'] = {'upload_id':result['upload_id'], 'offset':result['offset'], 'buf':''}
+                    else:
+                        self.openfh[fh]['f'] = {'upload_id':'', 'offset':0, 'buf':buf}
+                    return len(buf)
+                else:
+                    if len(buf)+len(self.openfh[fh]['f']['buf']) >= self.write_cache or len(buf) < 4096:
+                        result = self.dbx.chunked_upload(self.openfh[fh]['f']['buf']+buf, self.openfh[fh]['f']['upload_id'], self.openfh[fh]['f']['offset'])
+                        self.openfh[fh]['f'] = {'upload_id':result['upload_id'], 'offset':result['offset'], 'buf':''}
+                    else:
+                        self.openfh[fh]['f'].update({'buf':self.openfh[fh]['f']['buf']+buf})
+                    return len(buf)
             else:
-              if len(buf)+len(self.openfh[fh]['f']['buf']) >= self.write_cache or len(buf) < 4096:
-                result = self.dbx.dbxChunkedUpload(self.openfh[fh]['f']['buf']+buf, self.openfh[fh]['f']['upload_id'], self.openfh[fh]['f']['offset'])
-                self.openfh[fh]['f'] = {'upload_id':result['upload_id'], 'offset':result['offset'], 'buf':''}
-              else:
-                self.openfh[fh]['f'].update({'buf':self.openfh[fh]['f']['buf']+buf})
-              return len(buf)
-          else:
-            raise FuseOSError(EIO)
+                raise FuseOSError(EIO)
         except Exception:
-          raise FuseOSError(EIO)
-
-    # def write(self, path, buf, offset, fh):
-    #    self.dbx.put(path)
-    #    return len(buf)
+            raise FuseOSError(EIO)
 
     # def truncate(self, path, length, fh=None):
     #    full_path = self._full_path(path)
@@ -262,47 +244,27 @@ class Passthrough(Operations):
     #     return 0
 
       # Flush filesystem cache. Always true in this case.
-    def fsync(self, path, fdatasync, fh):
-      path = path.encode('utf-8')
-      if debug == True: appLog('debug', 'Called: fsync() - Path: ' + path)
+    # def fsync(self, path, fdatasync, fh):
+    #   path = path.encode('utf-8')
 
 
-    # def release(self, path, fh):
-    #    return
 
       # # Release (close) a filehandle.
     def release(self, path, fh):
-
         # Check to finish Dropbox upload.
         if type(self.openfh[fh]['f']) is dict and 'upload_id' in self.openfh[fh]['f'] and self.openfh[fh]['f']['upload_id'] != "":
-      #  if True:  
-          # Flush still existing data in buffer.
-          if self.openfh[fh]['f']['buf'] != "":
-            result = self.dbx.dbxChunkedUpload(self.openfh[fh]['f']['buf'], self.openfh[fh]['f']['upload_id'], self.openfh[fh]['f']['offset'])
-            #if (self.openfh[fh]['f']['upload_id']==""): self.openfh[fh]['f'] = {'upload_id':result['upload_id'], 'offset':result['offset'], 'buf':''}
-        #  if debug == True: appLog('debug', 'Finishing upload to Dropbox')
-          result = self.dbx.dbxCommitChunkedUpload(path, self.openfh[fh]['f']['upload_id'], self.openfh[fh]['f']['offset'], True)
-        
+            # Flush still existing data in buffer.
+            if self.openfh[fh]['f']['buf'] != "":
+                result = self.dbx.chunked_upload(self.openfh[fh]['f']['buf'], self.openfh[fh]['f']['upload_id'], self.openfh[fh]['f']['offset'])
+            
+            result = self.dbx.commit_chunked_upload(path, self.openfh[fh]['f']['upload_id'], self.openfh[fh]['f']['offset'], True)
 
-
-
-        # Remove outdated data from cache if handle was opened for writing.
-        if self.openfh[fh]['mode'] == 'w':
-          self.removeFromCache(path)
-            #os.path.dirname(path))
-
-        self.releaseFH(fh)
-    #    if debug == True: appLog('debug', 'Released filehandle: ' + str(fh))
+        self.release_fh(fh)
         return 0
 
 
-    # def fsync(self, path, fdatasync, fh):
-    #    return self.flush(path, fh)
 
-
-#=========
-
-    def releaseFH(self, fh):
+    def release_fh(self, fh):
         if fh in self.openfh:
           self.openfh.pop(fh)
           self.runfh.pop(fh)
@@ -310,41 +272,10 @@ class Passthrough(Operations):
           return False
 
       # Get a valid and unique filehandle.
-    def getFH(self, mode):
+    def get_fh(self, mode):
         for i in range(1,8193):
           if i not in self.openfh:
             self.openfh[i] = {'mode' : mode, 'f' : False, 'lock' : False, 'eoffset': 0}
             self.runfh[i] = False
             return i
         return False
-
-    def removeFromCache(self, path):
-       # if debug == True: appLog('debug', 'Called removeFromCache() Path: ' + path)
-
-
-        # Check whether this path exists within cache.
-        if path in self.cache:
-          item = self.cache[path]
-
-          # If this is a directory, remove all childs.
-          if 'entries' in item and 'contents' in item:
-            # Remove folder items from cache.
-          #  if debug == True: appLog('debug', 'Removing childs of path from cache')
-            for tmp in item['contents']:
-              if debug == True: appLog('debug', 'Removing from cache: ' + tmp['path'])
-              if tmp['path'] in self.cache:
-                self.cache.pop(tmp['path'])
-          else:
-            cur_path=os.path.dirname(path)
-            if cur_path in self.cache:
-              if 'entries' in self.cache[cur_path]:
-           #     if debug == True: appLog('debug', 'Removing parent path from file in cache')
-                self.cache.pop(os.path.dirname(path))
-        #  if debug == True: appLog('debug', 'Removing from cache: ' + path)
-          if path in self.cache:
-            self.cache.pop(path)
-          return True
-        else:
-       #   if debug == True: appLog('debug', 'Path not in cache: ' + path)
-          return False
-
