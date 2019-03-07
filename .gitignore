@@ -30,3 +30,6 @@ MANIFEST
 env/
 venv/
 ENV/
+
+# Configuration
+config/*

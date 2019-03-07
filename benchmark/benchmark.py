@@ -15,15 +15,15 @@ parser.add_argument('-d', '--distribution', choices=['sequential', 'random', 'zi
 args = vars(parser.parse_args())
 file_list = []
 
-# Create directory for dummy files
-os.mkdir('files')
-
 # Write files with random size
 it = 0
 
+if not os.path.isdir('teste'):
+    os.mkdir('teste')
+
 while it < args.get('number_of_files'):
     # size = random.uniform(1.0, args.get('size'))
-    filename = 'files/dummy' + str(it)
+    filename = 'teste/dummy' + str(it)
     f = open(filename, 'wb')
     f.seek(int(args.get('size')*1e6) - 1)
     f.write(b'\0')

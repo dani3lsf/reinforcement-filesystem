@@ -1,32 +1,26 @@
 #!/usr/bin/python3
 # ------------------------------------------------------------------------------
 
-import logging
 import configparser
-import dropbox
 import os
+import dropbox
+
+from time import mktime
+from dropbox import files
+from datetime import datetime
 
 
 class Dropbox:
-    """This class represents the Dropbox client.
-
-    Manage Dropbox interactions through the API v2.
-
-    """
 
     class __Dropbox:
-        """This class is a singleton to allow to only have one instance of the dropbox class.
-        """
-
         def __init__(self):
-            # Get the credential accessing token
-            config = configparser.ConfigParser()
-            config.read(os.path.join(os.path.abspath(os.path.dirname(__file__)), '../../config/CONFIGURATION.INI'))
 
-            # Setup instance variables
+            config = configparser.ConfigParser()
+            config.read(os.path.join(os.path.abspath(os.path.dirname(__file__)), '../../config/configuration.ini'))
+
             self.access_token = config.get('DROPBOX', 'ACCESS_TOKEN')
             self.api_client = dropbox.Dropbox(self.access_token)
-            self.logger = logging.getLogger('dropbox_client')
+            self.items = {}
 
     instance = None
 
@@ -38,165 +32,74 @@ class Dropbox:
             Dropbox.instance = Dropbox.__Dropbox()
             super().__init__()
 
-    """Generates a dictionary given an object of metadata.
-    
-    Args:
-        metadata: Object of metadata.
-    """
-    def gen_dict(self, metadata):
-        result = {}
-        for key in dir(metadata):
-            if not key.startswith('_'):
-                attr = getattr(metadata, key)
-                if isinstance(attr, list):
-                    tmp = []
-                    for item in attr:
-                        tmp.append(self.gen_dict(item))
-                    result[key] = tmp
+    def list_files_names(self):
+        results = self.api_client.files_list_folder('')
+
+        for item in getattr(results, 'entries'):
+
+            if isinstance(item, dropbox.files.FileMetadata):
+                date_format = '%Y-%m-%d %H:%M:%S'
+                modified_str = str(getattr(item, 'client_modified'))
+                modified = mktime(datetime.strptime(modified_str, date_format).timetuple())
+
+                if 'entries' in dir(item):
+                    self.items[getattr(item, 'name')] = (getattr(item, 'id'), 0, modified, modified)
                 else:
-                    result[key] = attr
+                    self.items[getattr(item, 'name')] = (getattr(item, 'id'), getattr(item, 'size'), modified, modified)
 
-        return result
+        return self.items.keys()
 
-
-    """Obtains the metadata of a given file or folder.
-    
-    Args:
-        path: Path to the desired file or folder.
-    """
     def get_metadata(self, path):
-        if path == '/':
-            path = ''
-        elif not path.startswith('/'):
-            path = '/' + path
+        if path[1:] not in self.items:
+            return None
+        else:
+            return {
+                'size': self.items[path[1:]][1],
+                'created': self.items[path[1:]][2],
+                'modified': self.items[path[1:]][3],
+                }
 
-        try:
-            result = None
-            md = self.api_client.files_list_folder(path)
-            result = self.gen_dict(md)
+    def open(self, path):
+        return None
 
-        except dropbox.exceptions.ApiError as err:
-            if err.error.is_path() and err.error.get_path()._tag == 'not_folder':
-                md = self.api_client.files_get_metadata(path)
-                result = self.gen_dict(md)
-                result['path'] = path
-            else:
-                return
+    def read(self, fh, path, length, offset):
+        fh = self.api_client.files_download(path)[1].raw
+        return fh.read(length)
 
-        if 'entries' in result:
-            for file in result.get('entries'):
-                file['path'] = file.get('path_display')
-
-        return result
-
-    """Upload a file.
-    
-    Args:
-        data (byte[]): A byte array with the content to be uploaded.
-        path (str): The path where the content should be created/modified.
-        overwrite (boolean): True, the content will overwrite, False otherwise.
-    """
-    def put(self, data, path, overwrite=True):
-        mode = (dropbox.files.WriteMode.overwrite
-                if overwrite
-                else dropbox.files.WriteMode.add)
-        try:
-            res = self.api_client.files_upload(f=data, path=path, mode=mode, mute=True)
-        except dropbox.exceptions.ApiError as err:
-            self.logger.error('*** PUT ***')
-
-        self.logger.info('uploaded as {}'.format(res.name.encode('utf8')))
-
-    """Download a file.
-    
-    Args:
-        path (str): The path in the provider where the content is.
-    """
-    def get(self, path):
-        try:
-            md, res = self.api_client.files_download(path)
-        except dropbox.exceptions.HttpError as err:
-            self.logger.error('*** GET ***')
-
-        self.logger.info('{} bytes; md:'.format(len(res.content), md))
-
-        return res.content
-
-    """Remove a file.
-    
-    Args:
-        path (str): The path in the provider which should be deleted.
-    """
     def delete(self, path):
-        if path == '/':
-            path = ''
-        elif not path.startswith('/'):
-            path = '/' + path
-
-        self.logger.info("Delete path: {}".format(path))
         try:
             self.api_client.files_delete(path)
-        except dropbox.exceptions.ApiError as err:
-            self.logger.error('*** DELETE *** {}'.format(err))
+            del self.items[path[1:]]
+        except dropbox.exceptions.ApiError:
+            return False
 
-    """Move a file.
-    
-    Args:
-        from_path (str): The source path in the provider where the file is.
-        to_path (str): The destination path in the provider where the file should be moved.
-    """
-    def move(self, from_path, to_path):
-        self.logger.info("Move from path {} to path {}".format(from_path, to_path))
-        try:
-            self.api_client.files_move(from_path, to_path)
-        except dropbox.exceptions.ApiError as err:
-            self.logger.error('*** DELETE *** {}'.format(err))
-
-    """Upload chunk of data to Dropbox.
-    
-    Args:
-        data: Bytes to upload.
-        upload_id: A unique identifier for the upload session. 
-        offset: The amount of data that has been uploaded so far.
-    """
-    def chunked_upload(self, data, upload_id, offset=0):
-        if upload_id == "":
-          result = self.api_client.files_upload_session_start(data)
-        else:
-          cursor = dropbox.files.UploadSessionCursor(upload_id, offset)
-          result = self.api_client.files_upload_session_append_v2(data, cursor)
-
-        result = self.gen_dict(result)
-        result.update({'offset': offset+len(data), 'upload_id': result['session_id']})
-
-        return result
-
-    """Commit chunked upload to Dropbox.
-    
-    Args:
-        path: Path.
-        upload_id: A unique identifier for the upload session. 
-        offset: The amount of data that has been uploaded so far.
-        overwrite: Overwrite file or not.
-    """
-    def commit_chunked_upload(self, path, upload_id, offset, overwrite=True):
+    def put(self, bytes, path, overwrite=True):
         mode = (dropbox.files.WriteMode.overwrite
                 if overwrite
                 else dropbox.files.WriteMode.add)
-        cursor = dropbox.files.UploadSessionCursor(upload_id, offset)
-        commitinfo = dropbox.files.CommitInfo(path,mode=mode)
-        result = self.api_client.files_upload_session_finish("".encode(), cursor, commitinfo)
-        result = self.gen_dict(result)
+        try:
+            ret = self.api_client.files_upload(f=bytes, path=path, mode=mode, mute=True)
+            self.items[getattr(ret, 'name')] = (getattr(ret, 'id'), 0, None, None)
+        except dropbox.exceptions.ApiError:
+            return False
 
-        return result
+    def write(self, path, buf, offset, fh, overwrite=True):
+        mode = (dropbox.files.WriteMode.overwrite
+                if overwrite
+                else dropbox.files.WriteMode.add)
 
-    """Get Dropbox filehandle.
-    
-    Args:
-        path: Path.
-        seek: TODO
-    """
-    def file_handle(self, path, seek=False):
-        result = self.api_client.files_download(path)[1].raw
-        return result
+        try:
+            ret = self.api_client.files_upload(f=buf, path=path, mode=mode, mute=True)
+            # TODO: resolução manha
+            tmp = list(self.items[getattr(ret, 'name')])
+            tmp[1] = getattr(ret, 'size')
+            self.items[getattr(ret, 'name')] = tuple(tmp)
+        except dropbox.exceptions.ApiError:
+            return False
 
+    def move(self, from_path, to_path):
+        try:
+            self.api_client.files_move(from_path, to_path)
+            self.items[to_path[1:]] = self.items.pop(from_path[1:])
+        except dropbox.exceptions.ApiError:
+            return False

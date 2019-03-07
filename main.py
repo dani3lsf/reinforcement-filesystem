@@ -3,9 +3,10 @@
 
 import argparse
 
-from src.fuse.fuse_impl import Passthrough
+from src.fuse.fuse_impl import ProviderFS
+from src.providers.provider import Provider
 from src.providers.dropbox import Dropbox
-# from src.providers.onedrive import OneDrive
+from src.providers.google_drive import GoogleDrive
 from fuse import FUSE
 
 
@@ -16,11 +17,13 @@ def main(mountpoint):
     # Provedor Dropbox
     dropbox = Dropbox()
 
-    # Provedor OneDrive
-    # one_drive = OneDrive()
+    # Provedor GoogleDrive
+    google_drive = GoogleDrive()
+
+    provider = Provider(dropbox)
 
     # Fuse Implementation
-    fuse_impl = Passthrough(dropbox)
+    fuse_impl = ProviderFS(provider)
 
     FUSE(fuse_impl, mountpoint, foreground=True)
 

@@ -1,4 +1,4 @@
 #!/usr/bin/python3
 # ------------------------------------------------------------------------------
 
-from .fuse_impl import Passthrough
+from .fuse_impl import ProviderFS
