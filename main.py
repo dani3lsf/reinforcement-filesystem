@@ -12,7 +12,7 @@ from fuse import FUSE
 
 def main(mountpoint):
     # Número de provedores
-    providers_number = 1
+    providers_number = 2
 
     # Provedor Dropbox
     dropbox = Dropbox()

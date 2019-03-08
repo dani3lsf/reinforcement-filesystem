@@ -8,13 +8,13 @@ import mimetypes
 
 from time import mktime
 from datetime import datetime
-from apiclient import discovery, http
+from googleapiclient import discovery, http
 from oauth2client import client
 from oauth2client import tools
 from oauth2client.file import Storage
 
 SCOPES = 'https://www.googleapis.com/auth/drive'
-CLIENT_SECRET_FILE = '../../config/client_secrets.json'
+CLIENT_SECRET_FILE = 'config/client_secrets.json'
 APPLICATION_NAME = 'Google Drive Fuse Filesystem'
 
 
