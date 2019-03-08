@@ -6,6 +6,7 @@ import argparse
 from src.fuse.fuse_impl import ProviderFS
 from src.providers.provider import Provider
 from src.providers.dropbox import Dropbox
+from src.providers.local import Local
 from src.providers.google_drive import GoogleDrive
 from fuse import FUSE
 
@@ -20,7 +21,11 @@ def main(mountpoint):
     # Provedor GoogleDrive
     google_drive = GoogleDrive()
 
-    provider = Provider(dropbox)
+    # Provedor Local
+    local = Local()
+
+    provider = Provider(local)
+
 
     # Fuse Implementation
     fuse_impl = ProviderFS(provider)
