@@ -66,9 +66,14 @@ class Provider:
     def create(self, path):
         fh_id = self.next_fh
         self.next_fh += 1
-        self.fh[fh_id] = io.BytesIO()
-
+        
         ret = self.pd.put("".encode(), path, True)
+
+        if isinstance(ret, int):
+            self.fh[fh_id] = ret 
+        else:
+            self.fh[fh_id] = io.BytesIO()
+
         if ret is False:
             return False
 
@@ -86,3 +91,4 @@ class Provider:
     def rename(self, old, new):
         ret = self.pd.move(old, new)
         return ret
+ 

@@ -6,6 +6,7 @@ import argparse
 from src.fuse.fuse_impl import ProviderFS
 from src.providers.provider import Provider
 from src.providers.dropbox import Dropbox
+from src.providers.local import Local
 from src.providers.google_drive import GoogleDrive
 from datetime import datetime, timedelta
 from src.metadata.metadata import Metadata, File
@@ -22,8 +23,13 @@ def signal_handler(signum, frame):
 def main(mountpoint):
 
     # Número de provedores
-    providers_number = 2
+    providers_number = 3
     providers = {}
+
+    # Provedor Local
+    local = Local()
+    provider = Provider(local)
+    providers['local'] = provider
 
     # Provedor Dropbox
     dropbox = Dropbox()
