@@ -76,10 +76,11 @@ class Provider:
 
     def write(self, path, buf, offset, fh):
         if fh not in self.fh:
+            print("AQUI2")
             return False
-
+        print("AQUI3")
         self.pd.write(path, buf, offset, self.fh[fh])
-
+        print("AQUI")
         return len(buf)
 
     def rename(self, old, new):
