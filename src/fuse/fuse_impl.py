@@ -28,8 +28,7 @@ class ProviderFS(Operations):
     def __init__(self, providers, metadata):
         print("0")
         self.providers = providers
-        self.default_provider = list(providers.values())[0]
-        self.provider = self.default_provider
+        self.default_provider = list(providers.values())[1]
         self.metadata = init_metadata(metadata, providers)
         # utilizado quando se altera exteriormente o fh do
         # ficheiro que o Fuse pensa ser o atual
@@ -37,23 +36,19 @@ class ProviderFS(Operations):
 
     def getattr(self, path, fh=None):
         print("1" + " " + path)
-        #result = self.providers['dropbox'].lstat(path[0:])
-        ####
+
         self.metadata.acquire_lock()
         # path[1:] porque o path é antecedido por um '/'
         cloud_name = self.metadata.get_file_cloud_name(path[1:])
-        print("HELLO1")
+        print(cloud_name)
         
         if cloud_name:
-            print("HELLO2")
             result = self.providers[cloud_name].lstat(path)
         else:
-            print("HELLO3")
             result = self.default_provider.lstat(path)
-        ####
-        print("HELLO4")
+
         self.metadata.release_lock()
-        print("HELLO5")
+
         if result is None:
             raise FuseOSError(errno.ENOENT)
 
@@ -144,7 +139,7 @@ class ProviderFS(Operations):
         file = self.metadata[path[1:]]
         file_length = file.length
         new_length = len(buf) + offset
-        print("OPS1")
+
         try:
             self.metadata.inc_dec_file_length(path[1:], new_length - file_length)
             cloud_name = self.metadata.get_file_cloud_name(path[1:])
@@ -161,18 +156,22 @@ class ProviderFS(Operations):
                 buf_init = self.read(path, offset, 0, fhr)
                 self.unlink(path)
                 cloud_info = self.metadata.choose_cloud_for_insertion(new_length)
+
                 if cloud_info is None:
                     raise FuseOSError(errno.EIO)
+
                 (cloud_id, to_cloud) = cloud_info
                 fhw = self.providers[to_cloud].create(path)
+
                 if fhw is False:
-                    print("Não sei o que se passa!")
                     raise FuseOSError(errno.EPERM)
+
                 self.fh_updated[fh] = fhw
                 self.metadata.add_file_to_cloud(path[1:], 0, to_cloud)
+
                 if offset != 0:
-                    print("Tautau")
                     self.write(path, buf_init, 0, fhw)
+
                 ret = self.write(path, buf, offset, fhw)
                 
                 return ret
@@ -184,104 +183,3 @@ class ProviderFS(Operations):
     def release(self, path, fh):
         if fh in self.fh_updated:
             del self.fh_updated[fh]
-
-
-    # def migrate(self, path, to_cloud):
-    #     file = self.metadata[path[1:]]
-    #     fhr = self.open(path, 32768)
-    #     print("STEP 1")
-    #     buf = self.read(path, file.length, 0, fhr)
-    #     print(type(buf))
-    #     print("STEP 2")
-    #     self.unlink(path)
-    #     print("STEP 3")
-    #     fhw = self.providers[to_cloud].create(path)
-    #     print("STEP 4")
-    #     if fhw is False:
-    #         raise FuseOSError(errno.EPERM)
-    #     print("STEP 5 len: " + str(len(buf)))
-    #     self.metadata.add_file_to_cloud(path[1:], 0, to_cloud)
-    #     self.write(path, buf, 0, fhw)
-    #     print("STEP 6")
-    #     self.metadata.inc_dec_file_length(path[1:], file.length)
-    #     print("STEP7")
-    #     return fhw
-
-
-      
-
-    # def write(self, path, buf, offset, fh):
-    #     print("8" + " " + path)
-    #     file = self.metadata[path[1:]]
-    #     print(type(buf))
-    #     if file:
-    #         print("CARALHO")
-    #     file_length = file.length
-    #     new_length = len(buf) + offset
-    #     print("OPS1")
-    #     try:
-    #         self.metadata.inc_dec_file_length(path[1:], new_length - file_length)
-    #         print("OPS2")
-    #     except InsufficientSpaceException:
-    #         cloud_info = self.metadata.choose_cloud_for_insertion(new_length)
-    #         print("OPS3")
-    #         if cloud_info is None:
-    #             print("OPS4")
-    #             raise FuseOSError(errno.EIO)
-    #         else:
-    #             (cloud_id, cloud_name) = cloud_info
-    #             print("OPS5")
-    #             try:
-    #                 print("migrate")
-    #                 fh = self.migrate(path, cloud_name)
-    #                 print("OPS7")
-    #                 #self.metadata.inc_dec_file_length(path[1:], new_length - file_length)
-    #                 self.write(path, buf, offset, fh)
-    #             except Exception:
-    #                 print("OPS8")
-    #                 raise FuseOSError(errno.EIO)
-    #     print("OPS9")   
-    #     cloud_name = self.metadata.get_file_cloud_name(path[1:])
-    #     print("OPS10")
-    #     ret = True
-    #     if (len(buf) > 0):
-    #         ret = self.providers[cloud_name].write(path, buf, offset, fh)
-    #         print("OPS11")
-    #         if ret is False:
-    #             print("OPS12")
-    #             self.metadata.inc_dec_file_length(path[1:], -(new_length - file_length))
-    #             raise FuseOSError(errno.EIO)
-
-    #     return ret
-
-    # def write(self, path, buf, offset, fh):
-    #     print("8" + " " + path)
-    #     file = self.metadata[path[1:]]
-    #     file_length = file.length
-    #     new_length = len(buf) + offset
-    #     print("OPS1")
-    #     try:
-    #         self.metadata.inc_dec_file_length(path[1:], new_length - file_length)
-    #         cloud_name = self.metadata.get_file_cloud_name(path[1:])
-    #         ret = self.providers[cloud_name].write(path, buf, offset, fh)
-    #         print(ret)
-    #         # if path == '/jduw.txt':
-    #         #     time.sleep(3600)
-    #         if ret is False:
-    #             print("O que foi agora crl")
-    #         print("OPS2")
-    #     except InsufficientSpaceException:
-    #         fhr = self.open(path, 32768)
-    #         buf_init = self.read(path, offset, 0, fhr)
-    #         self.unlink(path)
-    #         cloud_info = self.metadata.choose_cloud_for_insertion(new_length)
-    #         (cloud_id, to_cloud) = cloud_info
-    #         fhw = self.providers[to_cloud].create(path)
-    #         if fhw is False:
-    #             print("Não sei o que se passa!")
-    #             raise FuseOSError(errno.EPERM)
-    #         self.metadata.add_file_to_cloud(path[1:], 0, to_cloud)
-    #         if offset != 0:
-    #             print("Tautau")
-    #             self.write(path, buf_init, 0, fhw)
-    #         return self.write(path, buf, offset, fhw)

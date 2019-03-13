@@ -48,20 +48,21 @@ class Local:
     # ==================
 
     def get_metadata(self, path, fh=None):
-
         time.sleep(self.delay)
         full_path = self._full_path(path)
-        st = os.lstat(full_path)
-        
-        if path != '/'  and not path.endswith('.swp') and not path.endswith('.swx') and not path.endswith('~'):
-            self.dict_size[path] = getattr(st,'st_size')
-            self.cur_size = sum(self.dict_size.values())
-        
-        return {
-                'size': getattr(st,'st_size'),
-                'created': getattr(st,'st_ctime'),
-                'modified': getattr(st,'st_mtime')
-                }
+        try:
+            st = os.lstat(full_path)
+            print(st)
+            if path != '/'  and not path.endswith('.swp') and not path.endswith('.swx') and not path.endswith('~'):
+                self.dict_size[path] = getattr(st,'st_size')
+                self.cur_size = sum(self.dict_size.values())
+            return {
+                    'size': getattr(st,'st_size'),
+                    'created': getattr(st,'st_ctime'),
+                    'modified': getattr(st,'st_mtime')
+                    }
+        except Exception:
+            return None
 
     def list_files_names(self):
         return os.listdir(self.root)
@@ -70,7 +71,6 @@ class Local:
         if path in self.dict_size:
              del self.dict_size[path] 
              self.cur_size = sum(self.dict_size.values())
-
         return os.unlink(self._full_path(path))
 
     def move(self, old, new):

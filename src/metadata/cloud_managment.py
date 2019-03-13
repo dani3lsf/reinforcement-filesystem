@@ -45,7 +45,7 @@ class CloudManagement:
         self.clouds[cloud_id]['used'] += diff
 
     def get_cloud_id_by_name(self, cloud_name):
-        print(cloud_name)
+
         for cloud_id in range(0, len(self.clouds)):
             cloud = self.clouds[cloud_id]
             if cloud['name'] == cloud_name:

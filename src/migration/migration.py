@@ -24,27 +24,22 @@ class Migration(threading.Thread):
         file = self.metadata[file_name]
         # 1- Open fh na frm
         fhr = self.providers[from_cloud].open(path)
-        print("STEP 1")
         # 2- Read com o fh na frm
         bytes_read = self.providers[from_cloud].read(fhr, path, file.length, 0)
         if bytes_read is None:
             raise Exception
-        print("STEP 2")
         # 3- Create na cloud to
         fhw = self.providers[to_cloud].create(path)
         if fhw is False:
             raise Exception
-        print("STEP 3")
         # 4- write na cloud to
         n_bytes_written = self.providers[to_cloud].write(path, bytes_read, 0, fhw)
         if n_bytes_written is False:
             raise Exception
-        print("STEP 4")
         # 5- del da cloud frm
         result = self.providers[from_cloud].unlink(path)
         if result is False:
             raise Exception
-        print("STEP 5")
 
     def migrate(self):
         migration_generator = self.metadata.migration_data()

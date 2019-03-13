@@ -50,14 +50,24 @@ class Dropbox:
         return self.items.keys()
 
     def get_metadata(self, path):
-        if path[1:] not in self.items:
-            return None
-        else:
-            return {
+        ret = None
+        if path[1:] in self.items:
+            ret = {
                 'size': self.items[path[1:]][1],
                 'created': self.items[path[1:]][2],
                 'modified': self.items[path[1:]][3],
                 }
+        print(path)
+        print(ret)
+        return ret
+        # if path[1:] not in self.items:
+        #     return None
+        # else:
+        #     return {
+        #         'size': self.items[path[1:]][1],
+        #         'created': self.items[path[1:]][2],
+        #         'modified': self.items[path[1:]][3],
+        #         }
 
     def open(self, path):
         return None

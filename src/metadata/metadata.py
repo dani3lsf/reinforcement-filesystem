@@ -24,11 +24,9 @@ class Metadata():
         return "metadata = " + self.files.__repr__()
 
     def acquire_lock(self):
-        print("***** AQUIRED *****")
         self.lock.acquire()
 
     def release_lock(self):
-        print("***** RELEASED *****")
         self.lock.release()
 
     def add_read(self, file, time):
@@ -105,7 +103,6 @@ class Metadata():
         cloud_files_info = [(file.name, len(file.accesses)) for file in self.files.values() if file.provider == cloud_name]
         sorted(cloud_files_info, key = lambda x: x[1])
         accesses = [x[1] for x in cloud_files_info]
-        print(accesses)
         lower_outliers = []
         upper_outliers = []
         if accesses != []:
@@ -119,9 +116,7 @@ class Metadata():
 
     def migration_data(self):
         self.update_all()
-        print(self.clouds)
         for cloud_id in range(0, len(self.clouds)):
-            print("ahaha")
             (lower_outliers, upper_outliers) = self.cloud_outliers(self.clouds[cloud_id]["name"])
             yield (cloud_id, lower_outliers, upper_outliers)
 
@@ -135,5 +130,3 @@ class Metadata():
             self.clouds.inc_dec_used_space(to, file.length)
             self.clouds.inc_dec_used_space(frm, -file.length)
             file.provider = to_cloud['name']
-            print(self)
-            print(to_cloud['used'])
