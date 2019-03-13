@@ -17,10 +17,10 @@ class Local:
         def __init__(self):
 
             config = configparser.ConfigParser()
-            config.read(os.path.join(os.path.abspath(os.path.dirname(__file__)), '../../config/configuration.ini'))
+            config.read(os.path.join(os.path.abspath(os.path.dirname(__file__)), '../../config/CONFIGURATION.INI'))
 
             self.root = config.get('LOCAL', 'ROOT')
-            self.size = int(config.get('LOCAL', 'SIZE'))
+            self.size = int(config.get('LOCAL', 'TOTAL_SPACE'))
             self.delay = int(config.get('LOCAL', 'DELAY'))
             self.dict_size = {}
             self.cur_size = 0

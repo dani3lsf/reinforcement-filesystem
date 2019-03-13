@@ -105,12 +105,16 @@ class Metadata():
         cloud_files_info = [(file.name, len(file.accesses)) for file in self.files.values() if file.provider == cloud_name]
         sorted(cloud_files_info, key = lambda x: x[1])
         accesses = [x[1] for x in cloud_files_info]
-        q1, q3= np.percentile(accesses,[25,75])
-        iqr = q3 - q1
-        lower_bound = q1 -(1.5 * iqr) 
-        upper_bound = q3 +(1.5 * iqr)
-        lower_outliers = [x[0] for x in cloud_files_info if x[1] < lower_bound]
-        upper_outliers = [x[0] for x in cloud_files_info if x[1] > upper_bound]
+        print(accesses)
+        lower_outliers = []
+        upper_outliers = []
+        if accesses != []:
+            q1, q3= np.percentile(accesses,[25,75])
+            iqr = q3 - q1
+            lower_bound = q1 -(1.5 * iqr) 
+            upper_bound = q3 +(1.5 * iqr)
+            lower_outliers = [x[0] for x in cloud_files_info if x[1] < lower_bound]
+            upper_outliers = [x[0] for x in cloud_files_info if x[1] > upper_bound]
         return (lower_outliers, upper_outliers)
 
     def migration_data(self):

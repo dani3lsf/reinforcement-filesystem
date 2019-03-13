@@ -16,7 +16,7 @@ class Dropbox:
         def __init__(self):
 
             config = configparser.ConfigParser()
-            config.read(os.path.join(os.path.abspath(os.path.dirname(__file__)), '../../config/configuration.ini'))
+            config.read(os.path.join(os.path.abspath(os.path.dirname(__file__)), '../../config/CONFIGURATION.INI'))
 
             self.access_token = config.get('DROPBOX', 'ACCESS_TOKEN')
             self.api_client = dropbox.Dropbox(self.access_token)

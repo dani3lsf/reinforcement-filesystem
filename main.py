@@ -27,9 +27,9 @@ def main(mountpoint):
     providers = {}
 
     # Provedor Local
-    local = Local()
-    provider = Provider(local)
-    providers['local'] = provider
+    #local = Local()
+    #provider = Provider(local)
+    #providers['local'] = provider
 
     # Provedor Dropbox
     dropbox = Dropbox()
