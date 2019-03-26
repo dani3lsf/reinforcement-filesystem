@@ -122,7 +122,7 @@ class ProviderFS(Operations):
                 return fh
 
     def read(self, path, length, offset, fh):
-        print("7" + " " + path)
+        #print("7" + " " + path)
         self.metadata.acquire_lock()
         cloud_name = self.metadata.get_file_cloud_name(path[1:])
         bytes_read = self.providers[cloud_name].read(fh, path, length, offset)

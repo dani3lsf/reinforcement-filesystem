@@ -50,6 +50,7 @@ class Metadata():
 
 
     def add_file_to_cloud(self, file_name, file_length, cloud_name):
+        #print(cloud_name)
         if file_name not in self.files:
             self.files[file_name] = File(file_name, cloud_name, file_length)
             cloud_id = self.clouds.get_cloud_id_by_name(cloud_name)
@@ -102,17 +103,41 @@ class Metadata():
     def cloud_outliers(self, cloud_name):
         cloud_files_info = [(file.name, len(file.accesses)) for file in self.files.values() if file.provider == cloud_name]
         sorted(cloud_files_info, key = lambda x: x[1])
+        print(cloud_files_info)
         accesses = [x[1] for x in cloud_files_info]
         lower_outliers = []
         upper_outliers = []
         if accesses != []:
             q1, q3= np.percentile(accesses,[25,75])
+            avg = np.mean(accesses)
             iqr = q3 - q1
             lower_bound = q1 -(1.5 * iqr) 
-            upper_bound = q3 +(1.5 * iqr)
+            upper_bound = q3 +(1.5 * iqr) 
+            print((lower_bound, upper_bound))
             lower_outliers = [x[0] for x in cloud_files_info if x[1] < lower_bound]
             upper_outliers = [x[0] for x in cloud_files_info if x[1] > upper_bound]
+        print((lower_outliers, upper_outliers))
         return (lower_outliers, upper_outliers)
+
+
+    # def cloud_outliers(self, cloud_name):
+    #     cloud_files_info = [(file.name, len(file.accesses)) for file in self.files.values() if file.provider == cloud_name]
+    #     #sorted(cloud_files_info, key = lambda x: x[1])
+    #     print(cloud_files_info)
+    #     accesses = [x[1] for x in cloud_files_info]
+    #     lower_outliers = []
+    #     upper_outliers = []
+    #     if accesses != []:
+    #         data_mean, data_std = np.mean(accesses), np.std(accesses)
+    #         print((data_mean, data_std))
+    #         cut_off = data_std * 15
+    #         print(cut_off)
+    #         lower_bound = data_mean - cut_off
+    #         upper_bound = data_mean + cut_off
+    #         lower_outliers = [x[0] for x in cloud_files_info if x[1] < lower_bound]
+    #         upper_outliers = [x[0] for x in cloud_files_info if x[1] > upper_bound]
+    #     print((lower_outliers, upper_outliers))
+    #     return (lower_outliers, upper_outliers)
 
     def migration_data(self):
         self.update_all()

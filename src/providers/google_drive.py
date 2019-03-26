@@ -72,11 +72,18 @@ class GoogleDrive:
         if path[1:] not in self.items:
             return None
         else:
-            return {
+            # return {
+            #     'size': self.items[path[1:]][1],
+            #     'created': self.items[path[1:]][2],
+            #     'modified': self.items[path[1:]][3]
+            #     }
+            ret = {
                 'size': self.items[path[1:]][1],
                 'created': self.items[path[1:]][2],
-                'modified': self.items[path[1:]][3]
-                }
+                'modified': self.items[path[1:]][3],
+            }
+        return ret
+
 
     def open(self, path):
         request = self.service.files().get_media(fileId=self.items[path[1:]][0])
@@ -89,10 +96,13 @@ class GoogleDrive:
         except Exception:
             pass
 
+
         return fh
 
     def read(self, fh, path, length, offset):
         fh.seek(offset)
+        #print("OIOI")
+        #print(len(fh.read(length)))
         return fh.read(length)
 
     def delete(self, path):

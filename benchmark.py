@@ -8,18 +8,19 @@ import os
 import shutil
 import numpy as np
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument('-n', '--number_of_files', type=int, help='Number of files to be generated and read afterwards',
                     default=20)
 parser.add_argument('-s', '--size', type=int, help='Size for each file (MB)', default=5)
 parser.add_argument('-d', '--distribution', choices=['sequential', 'random', 'zipfian'],
-                    help='Distribution used to read files', default='sequential')
+                    help='Distribution used to read files', default='zipfian')
 parser.add_argument('-r', '--runtime', type=int, help='Runtime in minutes', default=5)
 parser.add_argument('-b', help="If files need to be written", action='store_true')
 args = vars(parser.parse_args())
 
 file_list = []
-folder_name = 'teste'
+folder_name = 'Original'
 
 # If files need to be written
 if args.get("b") == True:
@@ -44,10 +45,14 @@ if args.get("b") == True:
 
     while it < args.get('number_of_files'):
         # size = random.uniform(1.0, args.get('size'))
+
         filename = folder_name + '/dummy' + str(it)
+        print(filename)
         f = open(filename, 'wb')
         f.seek(int(args.get('size')*1e6) - 1)
+        print(args.get('size'))
         f.write(b'\0')
+
         print("Creating file... %s" % filename)
         file_list.append(filename)
         it += 1
@@ -55,10 +60,14 @@ else:
     if not os.path.isdir(folder_name):
         raise Exception("Directory doesn't exist")
     else:
-        file_list = [folder_name + '/' + file for file in os.listdir(folder_name)]
+        file_list = [folder_name + '/dummy' + str(it) for it in range(0,100) ]
+
+
 
 # Calculates time for end of test
 end_time = time.time() + 60 * args.get('runtime')
+print(time.time())
+print(end_time)
 
 # Initiate variable for number of reads
 number_of_reads = 0
@@ -67,16 +76,19 @@ number_of_reads = 0
 if args.get('distribution') == 'sequential':
     print("oi")
     while time.time() < end_time:
+
         for file in file_list:
-            with open(file, 'r') as f:
-                print("Reading file... %s" % file)
-                f.read()
-                number_of_reads += 1
+            if time.time() < end_time:
+                with open(file, 'r') as f:
+                    print("Reading file... %s" % file)
+                    f.read()
+                    number_of_reads += 1
 elif args.get('distribution') == 'random':
     while time.time() < end_time:
         next_file = random.randint(0, len(file_list) - 1)
-        with open(next_file, 'r') as f:
-            print("Reading file... %s" % next_file)
+        file = folder_name + '/dummy' + str(next_file)
+        with open(file, 'r') as f:
+            print("Reading file... %s" % file)
             f.read()
             number_of_reads += 1
 else:  # args.get('distribution') == 'zipfian'
