@@ -17,8 +17,8 @@ def str2bool(v):
 
 # Environment
 env_arg = add_argument_group('Environment')
-env_arg.add_argument('--num_bins', type=int, default=5, help='number of bins')
-env_arg.add_argument('--num_slots', type=int, default=5, help='number of slots per bin')
+env_arg.add_argument('--num_bins', type=int, default=2, help='number of bins')
+env_arg.add_argument('--num_slots', type=int, default=100, help='number of slots per bin')
 env_arg.add_argument('--num_descriptors', type=int, default=8, help='number of unique packets')
 
 # Network
@@ -34,7 +34,7 @@ data_arg.add_argument('--max_length', type=int, default=8, help='maximum chain l
 
 # Training / test parameters
 train_arg = add_argument_group('Training')
-train_arg.add_argument('--num_epoch', type=int, default=10000, help='number of epochs')
+train_arg.add_argument('--num_epoch', type=int, default=30000, help='number of epochs')
 train_arg.add_argument('--learning_rate', type=float, default=0.01, help='agent learning rate')
 #train_arg.add_argument('--lr_decay_step', type=int, default=5000, help='lr decay step')
 #train_arg.add_argument('--lr_decay_rate', type=float, default=0.96, help='lr decay rate')

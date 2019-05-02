@@ -101,7 +101,6 @@ if __name__ == "__main__":
                 for batch in range(config.batch_size):
                     #print(positions[batch])
                     #print(services.state[batch])
-                    #print(services.serviceLength[batch])
                     env.clear()
                     env.step(positions[batch], services.state[batch], services.serviceLength[batch])
                     reward[batch] = env.reward

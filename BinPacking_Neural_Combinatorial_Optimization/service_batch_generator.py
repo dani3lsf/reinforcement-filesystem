@@ -9,6 +9,8 @@ class ServiceBatchGenerator(object):
             state[batchSize, maxServiceLength] -- Generated random service chains
             serviceLength[batchSize] -- Generated array contining services length
     """
+
+    #    services = ServiceBatchGenerator(config.batch_size, config.min_length, config.max_length, config.num_descriptors)
     def __init__(self, batchSize, minServiceLength, maxServiceLength, numDescriptors):
         """
         Args:
