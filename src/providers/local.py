@@ -8,33 +8,33 @@ import argparse
 import configparser
 from fuse import FUSE, FuseOSError, Operations
 import time
+import os
 
 
 class Local:
 
+    def __init__(self, name):
 
-    class __Local:
-        def __init__(self, name):
+        super().__init__()
 
-            config = configparser.ConfigParser()
-            config.read(os.path.join(os.path.abspath(os.path.dirname(__file__)), '../../config/CONFIGURATION.INI'))
+        config = configparser.ConfigParser()
+        config.read(os.path.join(os.path.abspath(os.path.dirname(__file__)), '../../config/CONFIGURATION.INI'))
 
-            self.root = config.get(name, 'ROOT')
-            self.size = int(config.get(name, 'TOTAL_SPACE'))
-            self.delay = int(config.get(name, 'DELAY'))
-            self.dict_size = {}
-            self.cur_size = 0
-            print("CREATING"+ name)
+        self.name = name
+        self.root = config.get(name, 'ROOT')
+        self.size = int(config.get(name, 'TOTAL_SPACE'))
+        self.delay = int(config.get(name, 'DELAY'))
+        self.dict_size = {}
+        self.cur_size = 0
 
-    instance = None
+        if not os.path.exists(self.root):
+            os.makedirs(self.root)
+        
+        print("CREATING"+ name)
+
 
     def __getattr__(self, name):
-        return getattr(self.instance, name)
-
-    def __init__(self, name):
-        if not Local.instance:
-            Local.instance = Local.__Local(name)
-            super().__init__()
+        return self[name]
 
     # Helpers
     # =======

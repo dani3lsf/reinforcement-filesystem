@@ -10,13 +10,13 @@ from src.providers.dropbox import Dropbox
 from src.providers.local import Local
 from src.providers.google_drive import GoogleDrive
 from datetime import datetime, timedelta
-from src.metadata.metadata import Metadata, File
+from src.metadata.metadata import Metadata
 from src.exceptions.exceptions import ProgramKilled, InsufficientSpaceException
 from src.migration.migration import Migration
 import signal
 from fuse import FUSE
 
-WAIT_TIME_SECONDS = 10
+WAIT_TIME_SECONDS = 50
 
 def signal_handler(signum, frame):
     raise ProgramKilled

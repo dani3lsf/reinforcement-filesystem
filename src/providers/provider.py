@@ -58,6 +58,11 @@ class Provider:
         return fh_id
 
     def read(self, fh, path, length, offset):
+        if fh in self.fh:
+            print("FH está aberto")
+        else:
+            print("FH abrir novamente")
+            fh = self.open(path)
         return self.pd.read(self.fh[fh], path, length, offset)
 
     def unlink(self, path):

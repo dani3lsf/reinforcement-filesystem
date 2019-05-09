@@ -60,7 +60,7 @@ else:
     if not os.path.isdir(folder_name):
         raise Exception("Directory doesn't exist")
     else:
-        file_list = [folder_name + '/dummy' + str(it) for it in range(0,100) ]
+        file_list = [folder_name + '/dummy' + str(it) for it in range(0,args.get('number_of_files')) ]
 
 
 

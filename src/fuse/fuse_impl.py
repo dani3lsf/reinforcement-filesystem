@@ -97,7 +97,10 @@ class ProviderFS(Operations):
             raise FuseOSError(errno.EOPNOTSUPP)
 
         self.metadata.acquire_lock()
-        self.metadata.add_read(path[1:], datetime.now())
+        self.metadata.add_read(path[1:])
+        print(path[1:])
+        print(self.metadata.files[path[1:]])
+        # self.metadata.add_read(path[1:], datetime.now())
         cloud_name = self.metadata.get_file_cloud_name(path[1:])
         fh = self.providers[cloud_name].open(path)
         self.metadata.release_lock()
@@ -122,7 +125,7 @@ class ProviderFS(Operations):
                 return fh
 
     def read(self, path, length, offset, fh):
-        #print("7" + " " + path)
+        print("7" + " " + path)
         self.metadata.acquire_lock()
         cloud_name = self.metadata.get_file_cloud_name(path[1:])
         bytes_read = self.providers[cloud_name].read(fh, path, length, offset)
@@ -137,7 +140,7 @@ class ProviderFS(Operations):
         self.metadata.acquire_lock()
         fh = self.fh_updated.get(fh, fh)
         file = self.metadata[path[1:]]
-        file_length = file.length
+        file_length = file['length']
         new_length = len(buf) + offset
 
         try:
