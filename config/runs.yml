@@ -1,8 +1,14 @@
 ---
 
 runtimes:
-  collection: 15
+  collection: 3
   decision: 1
+
+files:
+  number: 100
+  size: 100
+
+mountpoint: 'mountpoint'
 
 runs:
   - "zipfian"

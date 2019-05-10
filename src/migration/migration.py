@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from src.metadata.metadata import Metadata
 from src.exceptions.exceptions import ProgramKilled, InsufficientSpaceException
 
-MIGRATION_SPEED = 10 #MB/s
+MIGRATION_SPEED = 10  # MB/s
 TEMP_DIR = "temp/"
 
 if not os.path.isdir(TEMP_DIR):
@@ -18,7 +18,7 @@ if not os.path.isdir(TEMP_DIR):
 
 
 class Migration(threading.Thread):
-    def __init__(self, metadata, providers, migration_data):
+    def __init__(self, metadata, providers, migration_data, duration):
         threading.Thread.__init__(self)
         self.daemon = False
         self.stopped = threading.Event()
@@ -26,7 +26,7 @@ class Migration(threading.Thread):
         self.metadata = metadata
         self.providers = providers
         self.migration_data = migration_data
-        self.duration = None
+        self.duration = duration
 
     def stop(self):
         self.stopped.set()
@@ -114,7 +114,7 @@ class Migration(threading.Thread):
         os.remove(TEMP_DIR + file_name)
 
     def migrate(self):
-        print("STARTING MIGRATION")
+        # print("STARTING MIGRATION")
         # migration_data = self.metadata.migration_data()
         print(self.migration_data)
 
@@ -143,21 +143,17 @@ class Migration(threading.Thread):
 
     def run(self):
         # while not self.stopped.wait(self.interval.total_seconds()):
-        
+
         ti = time.time()
         self.metadata.acquire_lock()
 
         bytes_moved = self.migrate()
-        self.duration = bytes_moved / (MIGRATION_SPEED * (10**6))
-        print(self.duration)
+        self.duration.value = int(bytes_moved / (MIGRATION_SPEED * (10**6)))
 
         self.metadata.release_lock()
         tf = time.time()
         diff = tf - ti
-        time_to_wait = self.duration - diff
-        print(time_to_wait)
+        time_to_wait = self.duration.value - diff
+
         if (time_to_wait > 0):
             time.sleep(time_to_wait)
-        
-
-
