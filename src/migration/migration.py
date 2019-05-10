@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from src.metadata.metadata import Metadata
 from src.exceptions.exceptions import ProgramKilled, InsufficientSpaceException
 
-
+MIGRATION_SPEED = 10 #MB/s
 TEMP_DIR = "temp/"
 
 if not os.path.isdir(TEMP_DIR):
@@ -26,6 +26,7 @@ class Migration(threading.Thread):
         self.metadata = metadata
         self.providers = providers
         self.migration_data = migration_data
+        self.duration = None
 
     def stop(self):
         self.stopped.set()
@@ -35,45 +36,34 @@ class Migration(threading.Thread):
 
         path = '/' + file_name
         file = self.metadata[file_name]
-        # print("Migration 1" + from_cloud + "  " + to_cloud)
         # 1- Open fh na frm
         fhr = self.providers[from_cloud].open(path)
-        # print("Migration 2")
         # 2- Read com o fh na frm
         bytes_read = self.providers[from_cloud].read(fhr, path, file['length'], 0)
-        # print("Migration 3")
 
         if bytes_read is None:
             raise Exception
         # 3- Create na cloud to
-        # print("Migration 4")
 
         fhw = self.providers[to_cloud].create(path)
-        # print("Migration 5")
 
         if fhw is False:
             raise Exception
         # 4- write na cloud to
-        # print("Migration 6")
 
         try:
             n_bytes_written = self.providers[to_cloud].write(path, bytes_read, 0, fhw)
         except Exception as e:
             print(e)
 
-        # print("Migration 7")
-
         if n_bytes_written is False:
             raise Exception
         # 5- del da cloud frm
-        # print("Migration 8")
 
         result = self.providers[from_cloud].unlink(path)
-        # print("Migration 9")
 
         if result is False:
             raise Exception
-        # print("Migration 10")
 
     def save_to_temp_dir(self, file_name, from_cloud):
         path = '/' + file_name
@@ -103,6 +93,9 @@ class Migration(threading.Thread):
         with open(TEMP_DIR + file_name, 'rb') as reader:
             bytes_read = reader.read()
 
+        if self.metadata.test_if_fits(len(bytes_read), to_cloud) == False:
+            raise InsufficientSpaceException
+
         fhw = self.providers[to_cloud].create(path)
         self.metadata.add_file_to_cloud(file_name, 0, to_cloud)
 
@@ -121,16 +114,18 @@ class Migration(threading.Thread):
         os.remove(TEMP_DIR + file_name)
 
     def migrate(self):
-        # print("STARTING MIGRATION")
+        print("STARTING MIGRATION")
         # migration_data = self.metadata.migration_data()
-        print("MIGRATION_DATA")
         print(self.migration_data)
 
-        for (file_name, frm, _) in self.migration_data:
+        bytes_moved = 0
+
+        for (file_name, frm, _, length) in self.migration_data:
+            bytes_moved += length
             from_cloud = self.metadata.clouds[frm]['name']
             self.save_to_temp_dir(file_name, from_cloud)
 
-        for (file_name, frm, to) in self.migration_data:
+        for (file_name, frm, to, _) in self.migration_data:
             to_cloud = self.metadata.clouds[to]['name']
 
             try:
@@ -144,61 +139,25 @@ class Migration(threading.Thread):
                     (cloud_id, cloud_name) = self.metadata.choose_cloud_for_insertion(length)
                     self.get_from_temp_dir(file_name, cloud_name)
 
-        # for (cloud_id, lower_outliers, _) in migration_data:
-        #     # if there is a better 
-        #     print("DENTRO")
-        #     print((cloud_id, lower_outliers))
-
-        #     # if there is a worse cloud
-        #     if(cloud_id > 0 and lower_outliers != []):
-        #         from_cloud = self.metadata.clouds[cloud_id]['name']
-        #         to_cloud = self.metadata.clouds[cloud_id - 1]['name']
-        #         for file_name in lower_outliers:
-        #             try:
-        #                 self.metadata.migrate(name=file_name, frm=cloud_id, to=cloud_id - 1)
-        #                 print("Migrating " + file_name + "from " + from_cloud + "to " + to_cloud)
-        #                 self.perform_migration(file_name, from_cloud, to_cloud)
-        #                 print("Migration succeded")
-        #             except InsufficientSpaceException:
-        #                 print("Migration not succeded due to insufficient space")
-        #                 pass
-        #             except Exception as e:
-        #                 print(e)
-        #                 print("Migration not succeded due to error")
-        #                 self.metadata.migrate(name=file_name, frm=cloud_id + 1, to=cloud_id)
-
-
-        # for (cloud_id, _, upper_outliers) in migration_data:
-        #     # if there is a better 
-        #     print("DENTRO")
-        #     print((cloud_id, upper_outliers))
-
-        #     if(cloud_id < len(self.providers) - 1 and upper_outliers != []):
-        #         from_cloud = self.metadata.clouds[cloud_id]['name']
-        #         to_cloud = self.metadata.clouds[cloud_id + 1]['name']
-        #         print("OUTLIERS")
-        #         print(upper_outliers)
-        #         for file_name in upper_outliers:
-        #             print(file_name)
-        #             try:
-        #                 self.metadata.migrate(name=file_name, frm=cloud_id, to=cloud_id + 1)
-        #                 print("Migrating " + file_name + "from " + from_cloud + "to " + to_cloud)
-        #                 self.perform_migration(file_name, from_cloud, to_cloud)
-        #                 print("Migration succeded")
-        #             except InsufficientSpaceException:
-        #                 print("Migration not succeded due to insufficient space")
-        #                 pass
-        #             except Exception as e:
-        #                 print(e)
-        #                 print("Migration not succeded. Cause unknown")
-        #                 self.metadata.migrate(name=file_name, frm=cloud_id + 1, to=cloud_id)
+        return bytes_moved
 
     def run(self):
         # while not self.stopped.wait(self.interval.total_seconds()):
-        # print("ETAPA1")
+        
+        ti = time.time()
         self.metadata.acquire_lock()
-        # print("ETAPA2")
-        self.migrate()
-        # print("ETAPA3")
+
+        bytes_moved = self.migrate()
+        self.duration = bytes_moved / (MIGRATION_SPEED * (10**6))
+        print(self.duration)
+
         self.metadata.release_lock()
-        # print("ETAPA4")
+        tf = time.time()
+        diff = tf - ti
+        time_to_wait = self.duration - diff
+        print(time_to_wait)
+        if (time_to_wait > 0):
+            time.sleep(time_to_wait)
+        
+
+

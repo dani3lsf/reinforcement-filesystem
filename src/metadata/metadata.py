@@ -93,6 +93,10 @@ class Metadata():
         else:
             return None
 
+    def test_if_fits(self, length, cloud):
+        cloud_id = self.clouds.get_cloud_id_by_name(cloud)
+        return self.clouds.test_if_fits(length, cloud_id)
+
     def inc_dec_file_length(self, file_name, diff):
         file = self.files[file_name]
         cloud_id = self.clouds.get_cloud_id_by_name(file['cloud'])
@@ -153,11 +157,11 @@ class Metadata():
             if cloud_id != 0 and lower_outliers != []:
                 for file_name in lower_outliers:
                     clouds_migration_data.append((file_name, cloud_id,
-                                                  cloud_id - 1))
+                                                  cloud_id - 1, self.files[file_name]['length']))
             if cloud_id < len(self.clouds) - 1 and upper_outliers != []:
                 for file_name in upper_outliers:
                     clouds_migration_data.append((file_name, cloud_id,
-                                                  cloud_id + 1))
+                                                  cloud_id + 1, self.files[file_name]['length']))
 
         return clouds_migration_data
 

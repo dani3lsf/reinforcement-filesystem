@@ -45,6 +45,12 @@ class CloudManagement:
                 return (cloud_id, cloud['name'])
         return None
 
+    def test_if_fits(self, length, cloud_id):
+        cloud = self.clouds[cloud_id]
+        if cloud['used'] + length > cloud['total']:
+            return False
+        return True
+
     def inc_dec_used_space(self, cloud_id, diff):
         cloud = self.clouds[cloud_id]
         # print("***** total: " + str(cloud['total']) + " used: " + str(cloud['used']) + "+" + str(diff) + " ******")
