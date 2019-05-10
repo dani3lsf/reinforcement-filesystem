@@ -9,6 +9,10 @@ import yaml
 import multiprocessing as mp
 import time
 import threading
+import json
+import numpy as np
+import matplotlib
+import matplotlib.pyplot as plt
 
 from src.fuse.fuse_impl import ProviderFS
 from src.fuse.fuse_impl2 import ProviderFS_No_Migration
@@ -29,7 +33,7 @@ PROVIDERS = None
 META = None
 C_RUNTIME = None
 D_RUNTIME = None
-
+OUTPUT_PATH = None
 
 def signal_handler(signum, frame):
     raise ProgramKilled
@@ -52,6 +56,8 @@ def target_fun():
     proc.kill()
 
     # Runs
+
+    writer = initiate_output()
 
     for conf in CONFIG["runs"]:
 
@@ -80,6 +86,8 @@ def target_fun():
             outs, errs = proc.communicate(timeout=60*C_RUNTIME)
         except subprocess.TimeoutExpired:
             proc.kill()
+
+        include_it_info_to_output(writer)
 
         # DECISION PHASE
         print("Starting decision phase...")
@@ -110,17 +118,82 @@ def target_fun():
 
         # Increment run
         CURRENT_RUN += 1
+    
+    finish_output(writer)
 
+def initiate_output():
+    output_file = OUTPUT_PATH + ".json"
+    writer = open(output_file, "w+")
+    writer.write("{\n")
+    return writer
+
+def include_it_info_to_output(writer):
+
+    files_cloud = META.get_files_cloud() 
+    hits = META.get_files_accesses()
+
+    string_clouds = "\"files_cloud\": " + json.dumps(files_cloud)
+    string_hits = "\"hits\": " + json.dumps(hits)
+        
+    writer.write(f"\"{CURRENT_RUN}\": " + "{\n" + string_clouds + ",\n")
+
+    if (CURRENT_RUN == len(CONFIG["runs"]) - 1):
+        writer.write(string_hits + "\n}\n")
+    else:
+        writer.write(string_hits + "\n},\n")
+
+def finish_output(writer):
+    output_file = OUTPUT_PATH + ".json"
+    output_graph = OUTPUT_PATH + ".pdf"
+    writer.write("}\n")
+    writer.close()
+
+    with open(output_file, "r") as reader:
+        json_str = reader.read()
+
+    run_info = json.loads(json_str)
+
+    its_info = []
+    its = list(range(len(CONFIG["runs"])))
+    file_names = META.get_all_file_names()
+    file_names.sort()
+
+    for file_name in file_names:
+        file_hits = [ run_info[str(it)]['hits'][file_name] for it in its]
+        its_info.append(file_hits)
+
+    accesses = np.array(its_info)     
+        
+    fig, ax = plt.subplots()
+    im = ax.imshow(accesses, cmap = 'Blues')
+
+    # We want to show all ticks...
+    ax.set_yticks(np.arange(len(file_names)))
+    ax.set_xticks(np.arange(len(its)))
+    # ... and label them with the respective list entries
+    ax.set_yticklabels(file_names)
+    ax.set_xticklabels(its)
+
+    # Loop over data dimensions and create text annotations.
+    for i in range(len(its)):
+        for j in range(len(file_names)):
+            text = ax.text(i, j, run_info[str(i)]['files_cloud'][file_names[j]],
+                        ha="center", va="center", color="b")
+
+    ax.set_title("Iteration File-Reads Heatmap")
+    fig.tight_layout()
+    plt.savefig(output_graph)
 
 def main(mountpoint):
 
-    global CURRENT_RUN, CONFIG, META, PROVIDERS, C_RUNTIME, D_RUNTIME
+    global CURRENT_RUN, CONFIG, META, PROVIDERS, C_RUNTIME, D_RUNTIME, OUTPUT_PATH
 
     with open("config/runs.yml") as stream:
         CONFIG = yaml.safe_load(stream)
 
     C_RUNTIME = int(CONFIG["runtimes"]["collection"])
     D_RUNTIME = int(CONFIG["runtimes"]["decision"])
+    OUTPUT_PATH = CONFIG["output_path"]
 
     # Providers
     PROVIDERS = {}

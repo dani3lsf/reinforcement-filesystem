@@ -1,4 +1,5 @@
 ---
+output_path: "output"
 
 runtimes:
   collection: 15

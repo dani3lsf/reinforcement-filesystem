@@ -93,6 +93,22 @@ class Metadata():
         else:
             return None
 
+    def get_files_cloud(self):
+        res = {}
+        for file_name, file_info in self.files.items():
+            cloud_name = file_info['cloud']
+            cloud_id = self.clouds.get_cloud_id_by_name(cloud_name)
+            res[file_name] = cloud_id
+            
+        return res
+
+    def get_files_accesses(self):
+        res = {}
+        for file_name, file_info in self.files.items():
+            res[file_name] = file_info['accesses']
+            
+        return res
+
     def test_if_fits(self, length, cloud):
         cloud_id = self.clouds.get_cloud_id_by_name(cloud)
         return self.clouds.test_if_fits(length, cloud_id)
