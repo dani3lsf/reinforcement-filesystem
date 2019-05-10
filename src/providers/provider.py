@@ -58,10 +58,7 @@ class Provider:
         return fh_id
 
     def read(self, fh, path, length, offset):
-        if fh in self.fh:
-            print("FH está aberto")
-        else:
-            print("FH abrir novamente")
+        if fh not in self.fh:
             fh = self.open(path)
         return self.pd.read(self.fh[fh], path, length, offset)
 
@@ -71,11 +68,11 @@ class Provider:
     def create(self, path):
         fh_id = self.next_fh
         self.next_fh += 1
-        
+
         ret = self.pd.put("".encode(), path, True)
 
         if isinstance(ret, int):
-            self.fh[fh_id] = ret 
+            self.fh[fh_id] = ret
         else:
             self.fh[fh_id] = io.BytesIO()
 
@@ -95,4 +92,3 @@ class Provider:
     def rename(self, old, new):
         ret = self.pd.move(old, new)
         return ret
- 

@@ -2,15 +2,16 @@
 # ------------------------------------------------------------------------------
 
 from __future__ import with_statement
-from datetime import datetime
-from src.exceptions.exceptions import InsufficientSpaceException
 
 import errno
 import os
 import re
 import time
 
+from datetime import datetime
+from src.exceptions.exceptions import InsufficientSpaceException
 from fuse import FuseOSError, Operations
+
 
 def init_metadata(metadata, providers):
     metadata.acquire_lock()
@@ -26,7 +27,7 @@ def init_metadata(metadata, providers):
 
 class ProviderFS(Operations):
     def __init__(self, providers, metadata):
-        print("0")
+        # print("0")
         self.providers = providers
         self.default_provider = list(providers.values())[1]
         self.metadata = init_metadata(metadata, providers)
@@ -35,12 +36,12 @@ class ProviderFS(Operations):
         self.fh_updated = {}
 
     def getattr(self, path, fh=None):
-        print("1" + " " + path)
+        # print("1" + " " + path)
 
         self.metadata.acquire_lock()
         # path[1:] porque o path é antecedido por um '/'
         cloud_name = self.metadata.get_file_cloud_name(path[1:])
-        print(cloud_name)
+        # print(cloud_name)
         
         if cloud_name:
             result = self.providers[cloud_name].lstat(path)
@@ -55,17 +56,17 @@ class ProviderFS(Operations):
         return result
 
     def readdir(self, path, fh):
-        print("2" + " " + path)
+        # print("2" + " " + path)
 
         self.metadata.acquire_lock()
         ret_list = ['.', '..'] + self.metadata.get_all_file_names()
         self.metadata.release_lock()
         return ret_list
 
-        #return ['.', '..'] + list(self.provider.listdir())
+        # return ['.', '..'] + list(self.provider.listdir())
 
     def unlink(self, path):
-        print("3" + " " + path)
+        # print("3" + " " + path)
         self.metadata.acquire_lock()
         cloud_name = self.metadata.get_file_cloud_name(path[1:])
         result = self.providers[cloud_name].unlink(path)
@@ -80,7 +81,7 @@ class ProviderFS(Operations):
         return result
 
     def rename(self, old, new):
-        print("4 " + old + " " + new)
+        # print("4 " + old + " " + new)
         self.metadata.acquire_lock()
         cloud_name = self.metadata.get_file_cloud_name(old[1:])
         ret = self.providers[cloud_name].rename(old, new)
@@ -92,14 +93,14 @@ class ProviderFS(Operations):
         self.metadata.release_lock()
 
     def open(self, path, flags):
-        print("5" + " " + path)
+        # print("5" + " " + path)
         if flags & os.O_APPEND:
             raise FuseOSError(errno.EOPNOTSUPP)
 
         self.metadata.acquire_lock()
         self.metadata.add_read(path[1:])
-        print(path[1:])
-        print(self.metadata.files[path[1:]])
+        # print(path[1:])
+        # print(self.metadata.files[path[1:]])
         # self.metadata.add_read(path[1:], datetime.now())
         cloud_name = self.metadata.get_file_cloud_name(path[1:])
         fh = self.providers[cloud_name].open(path)
@@ -107,7 +108,7 @@ class ProviderFS(Operations):
         return fh
 
     def create(self, path, mode, fi=None):
-        print("6" + " " + path)
+        # print("6" + " " + path)
         self.metadata.acquire_lock()
         cloud_info = self.metadata.choose_cloud_for_insertion(0)
         if cloud_info is None:
@@ -125,7 +126,7 @@ class ProviderFS(Operations):
                 return fh
 
     def read(self, path, length, offset, fh):
-        print("7" + " " + path)
+        # print("7" + " " + path)
         self.metadata.acquire_lock()
         cloud_name = self.metadata.get_file_cloud_name(path[1:])
         bytes_read = self.providers[cloud_name].read(fh, path, length, offset)
@@ -136,7 +137,7 @@ class ProviderFS(Operations):
         return bytes_read
 
     def write(self, path, buf, offset, fh):
-        print("8" + " " + path)
+        # print("8" + " " + path)
         self.metadata.acquire_lock()
         fh = self.fh_updated.get(fh, fh)
         file = self.metadata[path[1:]]
@@ -144,7 +145,8 @@ class ProviderFS(Operations):
         new_length = len(buf) + offset
 
         try:
-            self.metadata.inc_dec_file_length(path[1:], new_length - file_length)
+            self.metadata.inc_dec_file_length(path[1:],
+                                              new_length - file_length)
             cloud_name = self.metadata.get_file_cloud_name(path[1:])
             ret = self.providers[cloud_name].write(path, buf, offset, fh)
    
@@ -158,7 +160,8 @@ class ProviderFS(Operations):
                 fhr = self.open(path, 32768)
                 buf_init = self.read(path, offset, 0, fhr)
                 self.unlink(path)
-                cloud_info = self.metadata.choose_cloud_for_insertion(new_length)
+                cloud_info = self.metadata.choose_cloud_for_insertion(
+                    new_length)
 
                 if cloud_info is None:
                     raise FuseOSError(errno.EIO)
@@ -181,7 +184,10 @@ class ProviderFS(Operations):
             finally:
                 self.metadata.release_lock()
         finally:
-            self.metadata.release_lock()
+            try:
+                self.metadata.release_lock()
+            except RuntimeError:
+                pass
 
     def release(self, path, fh):
         if fh in self.fh_updated:

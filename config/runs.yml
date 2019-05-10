@@ -1,0 +1,37 @@
+---
+
+runtimes:
+  collection: 15
+  decision: 1
+
+runs:
+  - "zipfian"
+  - "sequential"
+  - "sequential"
+  - "sequential"
+  - "sequential"
+  - "sequential"
+  - "sequential"
+  - "sequential"
+  - "sequential"
+  - "sequential"
+  - "random"
+  - "random"
+  - "random"
+  - "random"
+  - "random"
+  - "random"
+  - "random"
+  - "random"
+  - "random"
+  - "random"
+  - "zipfian"
+  - "zipfian"
+  - "zipfian"
+  - "zipfian"
+  - "zipfian"
+  - "zipfian"
+  - "zipfian"
+  - "zipfian"
+  - "zipfian"
+  - "zipfian"

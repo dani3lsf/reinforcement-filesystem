@@ -29,9 +29,8 @@ class Local:
 
         if not os.path.exists(self.root):
             os.makedirs(self.root)
-        
-        print("CREATING"+ name)
 
+        # print("CREATING"+ name)
 
     def __getattr__(self, name):
         return self[name]
@@ -68,31 +67,31 @@ class Local:
 
     def delete(self, path):
         if path in self.dict_size:
-             del self.dict_size[path] 
-             self.cur_size = sum(self.dict_size.values())
+            del self.dict_size[path] 
+            self.cur_size = sum(self.dict_size.values())
         return os.unlink(self._full_path(path))
 
     def move(self, old, new):
         if old in self.dict_size:
-             del self.dict_size[old] 
-             self.cur_size = sum(self.dict_size.values())
+            del self.dict_size[old] 
+            self.cur_size = sum(self.dict_size.values())
         return os.rename(self._full_path(old), self._full_path(new))
 
     def open(self, path):
-        print("==================OPEN=============")
+        # print("==================OPEN=============")
         time.sleep(self.delay)
         full_path = self._full_path(path)
         return os.open(full_path, 32768)
 
     def put(self, bytes, path, overwrite=True):
-        print("==================PUT=============")
+        # print("==================PUT=============")
         full= self._full_path(path)
-        print(full)
+        # print(full)
         time.sleep(self.delay)
         full_path = self._full_path(path)
         fh = os.open(full_path, os.O_WRONLY | os.O_CREAT)
-        print(type(fh))
-        print("FILE DESCRIPTOR " + str(fh))
+        # print(type(fh))
+        # print("FILE DESCRIPTOR " + str(fh))
         return fh
 
     def read(self, fh, path, length, offset):
@@ -100,19 +99,18 @@ class Local:
         return os.read(fh, length)
 
     def write(self, path, buf, offset, fh):
-        print("==================WRITE=============")
-        full= self._full_path(path)
-        print(full)
+        # print("==================WRITE=============")
+        full = self._full_path(path)
+        # print(full)
         if not (path.endswith('.swp')):
             buf_len = len(buf)
             new_size = self.cur_size + buf_len
-            if  new_size > self.size:
+            if new_size > self.size:
                 raise FuseOSError(errno.EACCES)
             else:
                 self.dict_size[path] = buf_len
                 self.cur_size = new_size
-            
-        os.lseek(fh, offset, os.SEEK_SET)
-        print("WRITE SUCESSO")
-        return os.write(fh, buf)
 
+        os.lseek(fh, offset, os.SEEK_SET)
+        # print("WRITE SUCESSO")
+        return os.write(fh, buf)

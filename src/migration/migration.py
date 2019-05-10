@@ -1,25 +1,31 @@
 #!usr/bin/python3
 
+import threading
+import time
+import signal
+import os
+
 from datetime import datetime, timedelta
 from src.metadata.metadata import Metadata
 from src.exceptions.exceptions import ProgramKilled, InsufficientSpaceException
 
-import threading, time, signal, os
 
-TEMP_DIR = "Temp/"
+TEMP_DIR = "temp/"
 
 if not os.path.isdir(TEMP_DIR):
     print("Creating directory %s" % TEMP_DIR)
     os.mkdir(TEMP_DIR)
 
+
 class Migration(threading.Thread):
-    def __init__(self, interval, metadata, providers):
+    def __init__(self, metadata, providers, migration_data):
         threading.Thread.__init__(self)
         self.daemon = False
         self.stopped = threading.Event()
-        self.interval = interval
+        # self.interval = interval
         self.metadata = metadata
         self.providers = providers
+        self.migration_data = migration_data
 
     def stop(self):
         self.stopped.set()
@@ -29,45 +35,45 @@ class Migration(threading.Thread):
 
         path = '/' + file_name
         file = self.metadata[file_name]
-        print("Migration 1" + from_cloud + "  " + to_cloud)
+        # print("Migration 1" + from_cloud + "  " + to_cloud)
         # 1- Open fh na frm
         fhr = self.providers[from_cloud].open(path)
-        print("Migration 2")
+        # print("Migration 2")
         # 2- Read com o fh na frm
         bytes_read = self.providers[from_cloud].read(fhr, path, file['length'], 0)
-        print("Migration 3")
+        # print("Migration 3")
 
         if bytes_read is None:
             raise Exception
         # 3- Create na cloud to
-        print("Migration 4")
+        # print("Migration 4")
 
         fhw = self.providers[to_cloud].create(path)
-        print("Migration 5")
+        # print("Migration 5")
 
         if fhw is False:
             raise Exception
         # 4- write na cloud to
-        print("Migration 6")
+        # print("Migration 6")
 
         try:
             n_bytes_written = self.providers[to_cloud].write(path, bytes_read, 0, fhw)
         except Exception as e:
             print(e)
 
-        print("Migration 7")
+        # print("Migration 7")
 
         if n_bytes_written is False:
             raise Exception
         # 5- del da cloud frm
-        print("Migration 8")
+        # print("Migration 8")
 
         result = self.providers[from_cloud].unlink(path)
-        print("Migration 9")
+        # print("Migration 9")
 
         if result is False:
             raise Exception
-        print("Migration 10")
+        # print("Migration 10")
 
     def save_to_temp_dir(self, file_name, from_cloud):
         path = '/' + file_name
@@ -112,23 +118,21 @@ class Migration(threading.Thread):
             raise Exception
 
         self.metadata.inc_dec_file_length(file_name, n_bytes_written)
-        os.remove(TEMP_DIR + file_name) 
-        
+        os.remove(TEMP_DIR + file_name)
 
     def migrate(self):
-        print("STARTING MIGRATION")
-        migration_data = self.metadata.migration_data()
+        # print("STARTING MIGRATION")
+        # migration_data = self.metadata.migration_data()
         print("MIGRATION_DATA")
-        print(migration_data)
+        print(self.migration_data)
 
-        for (file_name, frm, _) in migration_data:
+        for (file_name, frm, _) in self.migration_data:
             from_cloud = self.metadata.clouds[frm]['name']
-            
             self.save_to_temp_dir(file_name, from_cloud)
 
-        for (file_name, frm, to) in migration_data:
+        for (file_name, frm, to) in self.migration_data:
             to_cloud = self.metadata.clouds[to]['name']
-            
+
             try:
                 self.get_from_temp_dir(file_name, to_cloud)
             except InsufficientSpaceException:
@@ -188,18 +192,13 @@ class Migration(threading.Thread):
         #                 print(e)
         #                 print("Migration not succeded. Cause unknown")
         #                 self.metadata.migrate(name=file_name, frm=cloud_id + 1, to=cloud_id)
-        
+
     def run(self):
-        while not self.stopped.wait(self.interval.total_seconds()):
-            print("ETAPA1")
-            self.metadata.acquire_lock()
-            print("ETAPA2")
-            self.migrate()
-            print("ETAPA3")
-            self.metadata.release_lock()
-            print("ETAPA4")
-
-
-
-
-
+        # while not self.stopped.wait(self.interval.total_seconds()):
+        # print("ETAPA1")
+        self.metadata.acquire_lock()
+        # print("ETAPA2")
+        self.migrate()
+        # print("ETAPA3")
+        self.metadata.release_lock()
+        # print("ETAPA4")

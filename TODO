@@ -1,0 +1,47 @@
+- Débito e latência (benchmark escrever para ficheiro à parte?)
+- Colocar tempo de migração fixo por ficheiro
+
+
+# --------------------------------------------
+
+Benchmark:
+    - Quantidade de ficheiro fixa
+    - 100 ficheiros com 100 MB
+
+Duas clouds:
+    - Latências: 1s e 5s (100 e 20 MB/s)
+    - Tamanhos: 4 GB e 8 GB
+
+Tempos rondas:
+    - Collection - 15 min
+    - Decision - 1 min
+    - Migration - variável
+
+Métricas:
+    - Débito e latência
+    - CPU, RAM e disco (dstat)
+
+1º conjunto de experiências:
+    - 10 rondas sequencial                        (x3)
+    - 10 rondas uniforme                          (x3)
+    - 10 rondas zipfian                           (x3)
+
+2º conjunto de experiências:
+    - 50 rondas e a cada 10 mudar os hotspots
+    - 25 rondas e a cada 5 mudar os hotspots      (menos prioridade)
+    - 5 rondas e a cada 1 mudar                   (mais prioridade)
+
+3ª conjunto de experiências:
+    Run:
+        - 1 sequencial
+        - 2 zipfian
+        - 3 uniforme
+    - Fazer run uma vez
+    - Repetir run 4 vezes (1,2,3,1,2,3,1,2,3,1,2,3)
+    - 12 rondas e aleatoriamente escolher um tipo de distribuição
+    - 12 rondas e ter 8 zipfian, 3 sequencial e uma aleatória 
+
+- Tempo de migração por ficheiro fixo
+
+Sugestões:
+    - Heatmaps para saber que ficheiros são mais acedidos
