@@ -6,13 +6,14 @@ import signal
 import os
 import subprocess
 import yaml
-import multiprocessing as mp
 import time
 import threading
 import json
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+import pandas as pd
+import multiprocessing as mp
 
 from src.fuse.fuse_impl import ProviderFS
 from src.fuse.fuse_impl2 import ProviderFS_No_Migration
@@ -34,6 +35,22 @@ META = None
 C_RUNTIME = None
 D_RUNTIME = None
 OUTPUT_PATH = None
+NUMBER_FILES = None
+FILE_SIZE = None
+MOUNTPOINT = None
+
+
+def calc_latency_with_migration(latency, migration_time):
+    nr_reads = int((C_RUNTIME * 60)/latency)
+    ret = ((C_RUNTIME * 60) + (migration_time))/nr_reads
+    return ret
+
+
+def calc_throughput_with_migration(throughput, migration_time):
+    nr_reads = int((C_RUNTIME * 60) * throughput)
+    ret = nr_reads/((C_RUNTIME * 60) + (migration_time))
+    return ret
+
 
 def signal_handler(signum, frame):
     raise ProgramKilled
@@ -41,14 +58,18 @@ def signal_handler(signum, frame):
 
 def target_fun():
     global CONFIG, CURRENT_RUN, PROVIDERS, META
+    global FILE_SIZE, NUMBER_FILES, MOUNTPOINT
 
     # time.sleep(10)
 
-    if not os.path.isdir('results/dstat'):
+    if not os.path.isdir('results'):
         os.mkdir('results')
         os.mkdir('results/dstat')
 
-    script = './benchmark.py -b > /dev/null'
+    output_bench = "results/bench.csv"
+
+    script = 'python3 benchmark.py -b -m %s -n %d -s %s > /dev/null' %\
+             (MOUNTPOINT, NUMBER_FILES, FILE_SIZE)
 
     proc = subprocess.Popen(script, shell=True)
 
@@ -61,7 +82,7 @@ def target_fun():
 
     for conf in CONFIG["runs"]:
 
-        filename = "results/dstat/dstat_RUN%s.csv" % CURRENT_RUN
+        filename = "results/dstat/dstat_run%s.csv" % CURRENT_RUN
 
         if not os.path.exists(filename):
             os.mknod(filename)
@@ -78,14 +99,13 @@ def target_fun():
         # COLLECTION PHASE
         print("Starting collection phase...")
 
-        script = 'python benchmark.py -d %s > /dev/null' % conf
+        script = 'python3 benchmark.py -d %s -r %d -i %d -o %s -m %s > /dev/'\
+                 'null' % (conf, C_RUNTIME, CURRENT_RUN, output_bench,
+                           MOUNTPOINT)
 
         proc = subprocess.Popen(script, shell=True)
 
-        try:
-            outs, errs = proc.communicate(timeout=60*C_RUNTIME)
-        except subprocess.TimeoutExpired:
-            proc.kill()
+        outs, errs = proc.communicate()
 
         include_it_info_to_output(writer)
 
@@ -101,14 +121,30 @@ def target_fun():
         time.sleep(60*D_RUNTIME)
         proc_decision.terminate()
 
+        mig_duration = mp.Value('i')
+
         # MIGRATION PHASE
         print("Starting migration phase...")
 
         migration = Migration(metadata=META,
                               providers=PROVIDERS,
-                              migration_data=cloud_migration_data)
+                              migration_data=cloud_migration_data,
+                              duration=mig_duration)
         migration.start()
         migration.join()
+
+        migration_time = mig_duration.value
+
+        # Update bench output
+        df = pd.read_csv(output_bench, dtype='float64')
+        df.set_index('Run')
+        df.at[CURRENT_RUN, 'Latency w/ Migration'] = \
+            calc_latency_with_migration(df.at[CURRENT_RUN, 'Latency'],
+                                        migration_time)
+        df.at[CURRENT_RUN, 'Throughtput w/ Migration'] = \
+            calc_throughput_with_migration(df.at[CURRENT_RUN, 'Throughtput'],
+                                           migration_time)
+        df.to_csv(output_bench, index=False, header=True)
 
         # Terminate dstat when run is over
         dstat_proc.kill()
@@ -184,9 +220,10 @@ def finish_output(writer):
     fig.tight_layout()
     plt.savefig(output_graph)
 
-def main(mountpoint):
+def main():
 
     global CURRENT_RUN, CONFIG, META, PROVIDERS, C_RUNTIME, D_RUNTIME, OUTPUT_PATH
+    global FILE_SIZE, NUMBER_FILES, MOUNTPOINT
 
     with open("config/runs.yml") as stream:
         CONFIG = yaml.safe_load(stream)
@@ -194,6 +231,8 @@ def main(mountpoint):
     C_RUNTIME = int(CONFIG["runtimes"]["collection"])
     D_RUNTIME = int(CONFIG["runtimes"]["decision"])
     OUTPUT_PATH = CONFIG["output_path"]
+    FILE_SIZE = int(CONFIG["files"]["size"])
+    NUMBER_FILES = int(CONFIG["files"]["number"])
 
     # Providers
     PROVIDERS = {}
@@ -217,9 +256,7 @@ def main(mountpoint):
 
     t.start()
 
-    # print("ola")
-
-    FUSE(fuse_impl, mountpoint, foreground=True)
+    FUSE(fuse_impl, MOUNTPOINT, foreground=True)
 
     # Starting fuse
     # fuse_proc = mp.Process(target=FUSE, args=(fuse_impl, mountpoint),
@@ -236,4 +273,6 @@ if __name__ == '__main__':
                         ' the filesystem will be mounted')
     args = vars(parser.parse_args())
 
-    main(args.get('mountpoint'))
+    MOUNTPOINT = args.get('mountpoint')
+
+    main()

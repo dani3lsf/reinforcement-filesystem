@@ -1,6 +1,11 @@
+DONE:
+- Colocar nome do mountpoint na config e adicionar parâmetro ao benchmark
+- Colocar número e tamanho de ficheiros na config
 - Débito e latência (benchmark escrever para ficheiro à parte?)
 - Colocar tempo de migração fixo por ficheiro
 
+TODO:
+- Heatmaps
 
 # --------------------------------------------
 
