@@ -1,8 +1,8 @@
 ---
-output_path: "output"
+output_path: "results"
 
 runtimes:
-  collection: 3
+  collection: 15
   decision: 1
 
 files:
@@ -12,7 +12,7 @@ files:
 mountpoint: 'mountpoint'
 
 runs:
-  - "zipfian"
+  - "sequential"
   - "sequential"
   - "sequential"
   - "sequential"
