@@ -147,7 +147,7 @@ def target_fun():
         df.at[float(CURR_ITERATION), 'Throughtput w/ Migration'] = \
             calc_throughput_with_migration(df.at[float(CURR_ITERATION), 'Throughtput'],
                                            migration_time)
-        df.to_csv(output_bench, index=False, header=True)
+        df.to_csv(output_bench, index=True, header=True)
 
         # Terminate dstat when iteration is over
         dstat_proc.kill()
