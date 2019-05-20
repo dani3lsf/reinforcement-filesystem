@@ -9,6 +9,7 @@ import yaml
 import time
 import threading
 import json
+import shutil
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
@@ -27,8 +28,8 @@ from src.exceptions.exceptions import ProgramKilled, InsufficientSpaceException
 from src.migration.migration import Migration
 from fuse import FUSE
 
-WAIT_TIME_SECONDS = 10
-CURRENT_RUN = 0
+# WAIT_TIME_SECONDS = 10
+CURR_ITERATION = 0
 CONFIG = None
 PROVIDERS = None
 META = None
@@ -57,16 +58,20 @@ def signal_handler(signum, frame):
 
 
 def target_fun():
-    global CONFIG, CURRENT_RUN, PROVIDERS, META
-    global FILE_SIZE, NUMBER_FILES, MOUNTPOINT
+    global CONFIG, CURR_ITERATION, PROVIDERS, META
+    global FILE_SIZE, NUMBER_FILES, MOUNTPOINT, OUTPUT_PATH
 
     # time.sleep(10)
 
-    if not os.path.isdir('results'):
-        os.mkdir('results')
-        os.mkdir('results/dstat')
+    # Remove results folder and files if it exists
+    if os.path.isdir(OUTPUT_PATH):
+        shutil.rmtree(OUTPUT_PATH)
 
-    output_bench = "results/bench.csv"
+    # Create results folders and files
+    os.mkdir(OUTPUT_PATH)
+    os.mkdir(OUTPUT_PATH + '/dstat')
+
+    output_bench = "%s/bench.csv" % OUTPUT_PATH
 
     script = 'python3 benchmark.py -b -m %s -n %d -s %s > /dev/null' %\
              (MOUNTPOINT, NUMBER_FILES, FILE_SIZE)
@@ -77,12 +82,11 @@ def target_fun():
     proc.kill()
 
     # Runs
-
     writer = initiate_output()
 
     for conf in CONFIG["runs"]:
 
-        filename = "results/dstat/dstat_run%s.csv" % CURRENT_RUN
+        filename = "%s/dstat/dstat_it%s.csv" % (OUTPUT_PATH, CURR_ITERATION)
 
         if not os.path.exists(filename):
             os.mknod(filename)
@@ -100,7 +104,7 @@ def target_fun():
         print("Starting collection phase...")
 
         script = 'python3 benchmark.py -d %s -r %d -i %d -o %s -m %s > /dev/'\
-                 'null' % (conf, C_RUNTIME, CURRENT_RUN, output_bench,
+                 'null' % (conf, C_RUNTIME, CURR_ITERATION, output_bench,
                            MOUNTPOINT)
 
         proc = subprocess.Popen(script, shell=True)
@@ -136,51 +140,53 @@ def target_fun():
         migration_time = mig_duration.value
 
         # Update bench output
-        df = pd.read_csv(output_bench, dtype='float64')
-        df.set_index('Run')
-        df.at[CURRENT_RUN, 'Latency w/ Migration'] = \
-            calc_latency_with_migration(df.at[CURRENT_RUN, 'Latency'],
+        df = pd.read_csv(output_bench, dtype='float64', index_col=0)
+        df.at[float(CURR_ITERATION), 'Latency w/ Migration'] = \
+            calc_latency_with_migration(df.at[float(CURR_ITERATION), 'Latency'],
                                         migration_time)
-        df.at[CURRENT_RUN, 'Throughtput w/ Migration'] = \
-            calc_throughput_with_migration(df.at[CURRENT_RUN, 'Throughtput'],
+        df.at[float(CURR_ITERATION), 'Throughtput w/ Migration'] = \
+            calc_throughput_with_migration(df.at[float(CURR_ITERATION), 'Throughtput'],
                                            migration_time)
-        df.to_csv(output_bench, index=False, header=True)
+        df.to_csv(output_bench, index=True, header=True)
 
-        # Terminate dstat when run is over
+        # Terminate dstat when iteration is over
         dstat_proc.kill()
 
-        # Reset metadata when run is over
+        # Reset metadata when iteration is over
         META.reset()
 
-        # Increment run
-        CURRENT_RUN += 1
-    
+        # Increment iteration
+        CURR_ITERATION += 1
+
     finish_output(writer)
 
+
 def initiate_output():
-    output_file = OUTPUT_PATH + ".json"
+    output_file = OUTPUT_PATH + "/heatmap.json"
     writer = open(output_file, "w+")
     writer.write("{\n")
     return writer
 
+
 def include_it_info_to_output(writer):
 
-    files_cloud = META.get_files_cloud() 
+    files_cloud = META.get_files_cloud()
     hits = META.get_files_accesses()
 
     string_clouds = "\"files_cloud\": " + json.dumps(files_cloud)
     string_hits = "\"hits\": " + json.dumps(hits)
-        
-    writer.write(f"\"{CURRENT_RUN}\": " + "{\n" + string_clouds + ",\n")
 
-    if (CURRENT_RUN == len(CONFIG["runs"]) - 1):
+    writer.write(f"\"{CURR_ITERATION}\": " + "{\n" + string_clouds + ",\n")
+
+    if (CURR_ITERATION == len(CONFIG["runs"]) - 1):
         writer.write(string_hits + "\n}\n")
     else:
         writer.write(string_hits + "\n},\n")
 
+
 def finish_output(writer):
-    output_file = OUTPUT_PATH + ".json"
-    output_graph = OUTPUT_PATH + ".pdf"
+    output_file = OUTPUT_PATH + "/heatmap.json"
+    output_graph = OUTPUT_PATH + "/heatmap.pdf"
     writer.write("}\n")
     writer.close()
 
@@ -195,13 +201,13 @@ def finish_output(writer):
     file_names.sort()
 
     for file_name in file_names:
-        file_hits = [ run_info[str(it)]['hits'][file_name] for it in its]
+        file_hits = [run_info[str(it)]['hits'][file_name] for it in its]
         its_info.append(file_hits)
 
-    accesses = np.array(its_info)     
-        
+    accesses = np.array(its_info)
+
     fig, ax = plt.subplots()
-    im = ax.imshow(accesses, cmap = 'Blues')
+    im = ax.imshow(accesses, cmap='Blues')
 
     # We want to show all ticks...
     ax.set_yticks(np.arange(len(file_names)))
@@ -213,17 +219,19 @@ def finish_output(writer):
     # Loop over data dimensions and create text annotations.
     for i in range(len(its)):
         for j in range(len(file_names)):
-            text = ax.text(i, j, run_info[str(i)]['files_cloud'][file_names[j]],
-                        ha="center", va="center", color="b")
+            text = ax.text(i, j, run_info[str(i)]['files_cloud']
+                           [file_names[j]], ha="center", va="center",
+                           color="b")
 
     ax.set_title("Iteration File-Reads Heatmap")
     fig.tight_layout()
     plt.savefig(output_graph)
 
+
 def main():
 
-    global CURRENT_RUN, CONFIG, META, PROVIDERS, C_RUNTIME, D_RUNTIME, OUTPUT_PATH
-    global FILE_SIZE, NUMBER_FILES, MOUNTPOINT
+    global CURR_ITERATION, CONFIG, META, PROVIDERS, C_RUNTIME, D_RUNTIME
+    global FILE_SIZE, NUMBER_FILES, MOUNTPOINT, OUTPUT_PATH
 
     with open("config/runs.yml") as stream:
         CONFIG = yaml.safe_load(stream)

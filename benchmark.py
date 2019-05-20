@@ -23,7 +23,7 @@ parser.add_argument('-r', '--runtime', type=int, help='Runtime in minutes',
                     default=15)
 parser.add_argument('-b', help="If files need to be written",
                     action='store_true')
-parser.add_argument('-i', help="Run number", type=int, default=0)
+parser.add_argument('-i', help="Iteration number", type=int, default=0)
 parser.add_argument('-o', '--output_file', help="Output file to append results",
                     type=str)
 parser.add_argument('-m', '--mountpoint', help="Where to write files",
@@ -127,7 +127,7 @@ else:
         else:
             file_to_append = args.get("output_file")
 
-            d = {'Run': [args.get("i")],
+            d = {'Iteration': [args.get("i")],
                  'Latency': [latency],
                  'Throughtput': [throughput],
                  'Latency w/ Migration': [0],
