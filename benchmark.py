@@ -33,8 +33,12 @@ args = vars(parser.parse_args())
 file_list = []
 folder_name = args.get('mountpoint')
 
+print("H")
+
+
 # If files need to be written
 if args.get("b") == True:
+    print("CREATING FILES")
     # If directory doesn't exist create it
     if not os.path.isdir(folder_name):
         print("Creating directory %s" % folder_name)
@@ -68,9 +72,16 @@ if args.get("b") == True:
         file_list.append(filename)
         it += 1
 else:
+    print("/////////////////")
+    print(folder_name)
+    print("HHHH")
+    print(os.path.isdir(folder_name))
+    print("KKKK")
     if not os.path.isdir(folder_name):
+        print("HHH2")
         raise Exception("Directory doesn't exist")
     else:
+        print("HHH")
         file_list = [folder_name + '/dummy' + str(it) for it in range(0,args.get('number_of_files')) ]
 
         # Calculates time for end of test
@@ -91,7 +102,9 @@ else:
                             print("Reading file... %s" % file)
                             f.read()
                             number_of_reads += 1
+                            print(f)
         elif args.get('distribution') == 'random':
+            np.random.seed(1234567)
             while time.time() < end_time:
                 next_file = random.randint(0, len(file_list) - 1)
                 file = folder_name + '/dummy' + str(next_file)
@@ -99,16 +112,19 @@ else:
                     print("Reading file... %s" % file)
                     f.read()
                     number_of_reads += 1
+                    print(f)
         else:  # args.get('distribution') == 'zipfian'
-            a = 1.7  # TODO: não sei se manter este valor
-            np.random.seed(12345678)
+            a = 1.8  # TODO: não sei se manter este valor
+            np.random.seed(1234567)
             wgs = np.random.zipf(a, size=len(file_list))
+            random.seed(12354678)
             while time.time() < end_time:
                 next_file = random.choices(file_list, weights=wgs)[0]
                 with open(next_file, 'r') as f:
                     print("Reading file... %s" % next_file)
                     f.read()
                     number_of_reads += 1
+                    print(f)
 
         # Calculations for latency and throughput
         # Throughput = Number of files read per second
