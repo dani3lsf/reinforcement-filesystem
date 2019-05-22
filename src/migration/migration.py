@@ -37,15 +37,15 @@ class Migration(threading.Thread):
         path = '/' + file_name
         file = self.metadata[file_name]
         # 1- Open fh na frm
-        fhr = self.providers[from_cloud].open(path)
+        fhr = self.providers[from_cloud].open(path,delay=False)
         # 2- Read com o fh na frm
-        bytes_read = self.providers[from_cloud].read(fhr, path, file['length'], 0)
+        bytes_read = self.providers[from_cloud].read(fhr, path, file['length'], 0, delay=False)
 
         if bytes_read is None:
             raise Exception
         # 3- Create na cloud to
 
-        fhw = self.providers[to_cloud].create(path)
+        fhw = self.providers[to_cloud].create(path, delay=False)
 
         if fhw is False:
             raise Exception
@@ -69,9 +69,9 @@ class Migration(threading.Thread):
         path = '/' + file_name
         file = self.metadata[file_name]
 
-        fhr = self.providers[from_cloud].open(path)
+        fhr = self.providers[from_cloud].open(path, delay=False)
 
-        bytes_read = self.providers[from_cloud].read(fhr, path, file['length'], 0)
+        bytes_read = self.providers[from_cloud].read(fhr, path, file['length'], 0, delay=False)
 
         if bytes_read is None:
             raise Exception
@@ -96,7 +96,7 @@ class Migration(threading.Thread):
         if self.metadata.test_if_fits(len(bytes_read), to_cloud) == False:
             raise InsufficientSpaceException
 
-        fhw = self.providers[to_cloud].create(path)
+        fhw = self.providers[to_cloud].create(path, delay=False)
         self.metadata.add_file_to_cloud(file_name, 0, to_cloud)
 
         if fhw is False:
@@ -120,16 +120,16 @@ class Migration(threading.Thread):
 
         bytes_moved = 0
 
-        for (file_name, frm, _, length) in self.migration_data:
-            bytes_moved += length
+        for (file_name, frm, _, _) in self.migration_data:
             from_cloud = self.metadata.clouds[frm]['name']
             self.save_to_temp_dir(file_name, from_cloud)
 
-        for (file_name, frm, to, _) in self.migration_data:
+        for (file_name, frm, to, length) in self.migration_data:
             to_cloud = self.metadata.clouds[to]['name']
 
             try:
                 self.get_from_temp_dir(file_name, to_cloud)
+                bytes_moved += length
             except InsufficientSpaceException:
                 from_cloud = self.metadata.clouds[frm]['name']
                 try:
@@ -153,7 +153,10 @@ class Migration(threading.Thread):
         self.metadata.release_lock()
         tf = time.time()
         diff = tf - ti
+        print(diff)
         time_to_wait = self.duration.value - diff
+        print("tempo_a_esperar")
+        print(time_to_wait)
 
         if (time_to_wait > 0):
             time.sleep(time_to_wait)

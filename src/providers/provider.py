@@ -50,26 +50,26 @@ class Provider:
     def listdir(self):
         return self.pd.list_files_names()
 
-    def open(self, path):
+    def open(self, path, delay=True):
         fh_id = self.next_fh
         self.next_fh += 1
-        self.fh[fh_id] = self.pd.open(path)
+        self.fh[fh_id] = self.pd.open(path,delay)
 
         return fh_id
 
-    def read(self, fh, path, length, offset):
+    def read(self, fh, path, length, offset,delay=True):
         if fh not in self.fh:
-            fh = self.open(path)
+            fh = self.open(path, delay)
         return self.pd.read(self.fh[fh], path, length, offset)
 
     def unlink(self, path):
         return self.pd.delete(path)
 
-    def create(self, path):
+    def create(self, path, delay=True):
         fh_id = self.next_fh
         self.next_fh += 1
 
-        ret = self.pd.put("".encode(), path, True)
+        ret = self.pd.put("".encode(), path, True, delay)
 
         if isinstance(ret, int):
             self.fh[fh_id] = ret

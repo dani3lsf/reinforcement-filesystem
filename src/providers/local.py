@@ -77,17 +77,19 @@ class Local:
             self.cur_size = sum(self.dict_size.values())
         return os.rename(self._full_path(old), self._full_path(new))
 
-    def open(self, path):
+    def open(self, path, delay=True):
         # print("==================OPEN=============")
-        time.sleep(self.delay)
+        if delay:
+            time.sleep(self.delay)
         full_path = self._full_path(path)
         return os.open(full_path, 32768)
 
-    def put(self, bytes, path, overwrite=True):
+    def put(self, bytes, path, overwrite=True, delay=True):
         # print("==================PUT=============")
         full= self._full_path(path)
         # print(full)
-        time.sleep(self.delay)
+        if delay:
+            time.sleep(self.delay)
         full_path = self._full_path(path)
         fh = os.open(full_path, os.O_WRONLY | os.O_CREAT)
         # print(type(fh))
