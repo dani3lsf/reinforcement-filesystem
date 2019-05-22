@@ -74,7 +74,7 @@ def draw_graph(files_data):
         plot, = plt.plot(file_data["its"], file_data["lat_m"], label=file_name)
         for it in range(0,len(file_data["its"])):
             plt.annotate('{}'.format(file_data["nmf"][it]),
-                    xy=(file_data["its"][it], file_data["lat"][it]),
+                    xy=(file_data["its"][it], file_data["lat_m"][it]),
                     xytext=(0, 3),  # use 3 points offset
                     textcoords="offset points",  # in both directions
                     ha='right', va='bottom')
@@ -91,7 +91,7 @@ def draw_graph(files_data):
         plot, = plt.plot(file_data["its"], file_data["thrp"], label=file_name)
         for it in range(0,len(file_data["its"])):
             plt.annotate('{}'.format(file_data["nmf"][it]),
-                    xy=(file_data["its"][it], file_data["lat"][it]),
+                    xy=(file_data["its"][it], file_data["thrp"][it]),
                     xytext=(0, 3),  # use 3 points offset
                     textcoords="offset points",  # in both directions
                     ha='right', va='bottom')
@@ -108,7 +108,7 @@ def draw_graph(files_data):
         plot, = plt.plot(file_data["its"], file_data["thrp_m"], label=file_name)
         for it in range(0,len(file_data["its"])):
             plt.annotate('{}'.format(file_data["nmf"][it]),
-                    xy=(file_data["its"][it], file_data["lat"][it]),
+                    xy=(file_data["its"][it], file_data["thrp_m"][it]),
                     xytext=(0, 3),  # use 3 points offset
                     textcoords="offset points",  # in both directions
                     ha='right', va='bottom')
