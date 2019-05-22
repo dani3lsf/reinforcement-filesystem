@@ -18,7 +18,7 @@ if not os.path.isdir(TEMP_DIR):
 
 
 class Migration(threading.Thread):
-    def __init__(self, metadata, providers, migration_data, duration):
+    def __init__(self, metadata, providers, migration_data, duration, mig_files_number):
         threading.Thread.__init__(self)
         self.daemon = False
         self.stopped = threading.Event()
@@ -27,6 +27,7 @@ class Migration(threading.Thread):
         self.providers = providers
         self.migration_data = migration_data
         self.duration = duration
+        self.mig_files_number = mig_files_number
 
     def stop(self):
         self.stopped.set()
@@ -119,6 +120,7 @@ class Migration(threading.Thread):
         print(self.migration_data)
 
         bytes_moved = 0
+        nr_files = 0
 
         for (file_name, frm, _, _) in self.migration_data:
             from_cloud = self.metadata.clouds[frm]['name']
@@ -130,6 +132,7 @@ class Migration(threading.Thread):
             try:
                 self.get_from_temp_dir(file_name, to_cloud)
                 bytes_moved += length
+                nr_files += 1
             except InsufficientSpaceException:
                 from_cloud = self.metadata.clouds[frm]['name']
                 try:
@@ -139,7 +142,7 @@ class Migration(threading.Thread):
                     (cloud_id, cloud_name) = self.metadata.choose_cloud_for_insertion(length)
                     self.get_from_temp_dir(file_name, cloud_name)
 
-        return bytes_moved
+        return (bytes_moved, nr_files)
 
     def run(self):
         # while not self.stopped.wait(self.interval.total_seconds()):
@@ -147,8 +150,9 @@ class Migration(threading.Thread):
         ti = time.time()
         self.metadata.acquire_lock()
 
-        bytes_moved = self.migrate()
+        (bytes_moved, nr_files) = self.migrate()
         self.duration.value = int(bytes_moved / (MIGRATION_SPEED * (10**6)))
+        self.mig_files_number.value = int(nr_files)
 
         self.metadata.release_lock()
         tf = time.time()

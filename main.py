@@ -126,6 +126,7 @@ def target_fun():
         proc_decision.terminate()
 
         mig_duration = mp.Value('i')
+        mig_files_number = mp.Value('i')
 
         # MIGRATION PHASE
         print("Starting migration phase...")
@@ -133,11 +134,13 @@ def target_fun():
         migration = Migration(metadata=META,
                               providers=PROVIDERS,
                               migration_data=cloud_migration_data,
-                              duration=mig_duration)
+                              duration=mig_duration,
+                              mig_files_number=mig_files_number)
         migration.start()
         migration.join()
 
         migration_time = mig_duration.value
+        migration_nf = mig_files_number.value
 
         # Update bench output
         df = pd.read_csv(output_bench, dtype='float64', index_col=0)
@@ -147,6 +150,7 @@ def target_fun():
         df.at[float(CURR_ITERATION), 'Throughtput w/ Migration'] = \
             calc_throughput_with_migration(df.at[float(CURR_ITERATION), 'Throughtput'],
                                            migration_time)
+        df.at[float(CURR_ITERATION), 'Migration Number'] = migration_nf
         df.to_csv(output_bench, index=True, header=True)
 
         # Terminate dstat when iteration is over

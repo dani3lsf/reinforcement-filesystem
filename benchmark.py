@@ -104,7 +104,7 @@ else:
                             number_of_reads += 1
                             print(f)
         elif args.get('distribution') == 'random':
-            np.random.seed(1234567)
+            random.seed(1234567)
             while time.time() < end_time:
                 next_file = random.randint(0, len(file_list) - 1)
                 file = folder_name + '/dummy' + str(next_file)
@@ -147,7 +147,8 @@ else:
                  'Latency': [latency],
                  'Throughtput': [throughput],
                  'Latency w/ Migration': [0],
-                 'Throughtput w/ Migration': [0]}
+                 'Throughtput w/ Migration': [0],
+                 'Migration Number': [0]}
 
             df = pd.DataFrame(data=d)
 

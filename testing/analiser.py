@@ -15,17 +15,15 @@ def proc_file(f):
     thrp = []
     lat_m = []
     thrp_m = []
+    nmf = []
     line_count = 0
     for row in csv_reader:
-        if line_count == 0:
-            line_count += 1
-            continue
-
         its.append(float(row["Iteration"]))
         lat.append(float(row["Latency"]))
         thrp.append(float(row["Throughtput"]))
         lat_m.append(float(row["Latency w/ Migration"]))
         thrp_m.append(float(row["Throughtput w/ Migration"]))
+        nmf.append(float(row["Migration Number"]))
         line_count += 1
     
     res["its"] = its
@@ -33,6 +31,7 @@ def proc_file(f):
     res["thrp"] = thrp
     res["lat_m"] = lat_m
     res["thrp_m"] = thrp_m
+    res["nmf"] = nmf
 
     return res
 
@@ -49,7 +48,6 @@ def proc_name(path, filenames):
 
 def draw_graph(files_data):
     pdf = matplotlib.backends.backend_pdf.PdfPages("output.pdf")
-    
     fig = plt.figure()
     plt.xlabel('iterações')
     plt.ylabel('latência (s/read)')
@@ -57,6 +55,12 @@ def draw_graph(files_data):
     handles = []
     for file_name, file_data in files_data.items():
         plot, = plt.plot(file_data["its"], file_data["lat"], label=file_name)
+        for it in range(0,len(file_data["its"])):
+            plt.annotate('{}'.format(file_data["nmf"][it]),
+                    xy=(file_data["its"][it], file_data["lat"][it]),
+                    xytext=(0, 3),  # use 3 points offset
+                    textcoords="offset points",  # in both directions
+                    ha='right', va='bottom')
         handles.append(plot)
     plt.legend(handles=handles, loc='lower right')
     pdf.savefig(fig)
@@ -68,6 +72,12 @@ def draw_graph(files_data):
     handles = []
     for file_name, file_data in files_data.items():
         plot, = plt.plot(file_data["its"], file_data["lat_m"], label=file_name)
+        for it in range(0,len(file_data["its"])):
+            plt.annotate('{}'.format(file_data["nmf"][it]),
+                    xy=(file_data["its"][it], file_data["lat"][it]),
+                    xytext=(0, 3),  # use 3 points offset
+                    textcoords="offset points",  # in both directions
+                    ha='right', va='bottom')
         handles.append(plot)
     plt.legend(handles=handles, loc='lower right')
     pdf.savefig(fig)
@@ -79,6 +89,12 @@ def draw_graph(files_data):
     handles = []
     for file_name, file_data in files_data.items():
         plot, = plt.plot(file_data["its"], file_data["thrp"], label=file_name)
+        for it in range(0,len(file_data["its"])):
+            plt.annotate('{}'.format(file_data["nmf"][it]),
+                    xy=(file_data["its"][it], file_data["lat"][it]),
+                    xytext=(0, 3),  # use 3 points offset
+                    textcoords="offset points",  # in both directions
+                    ha='right', va='bottom')
         handles.append(plot)
     plt.legend(handles=handles, loc='lower right')
     pdf.savefig(fig)
@@ -90,6 +106,12 @@ def draw_graph(files_data):
     handles = []
     for file_name, file_data in files_data.items():
         plot, = plt.plot(file_data["its"], file_data["thrp_m"], label=file_name)
+        for it in range(0,len(file_data["its"])):
+            plt.annotate('{}'.format(file_data["nmf"][it]),
+                    xy=(file_data["its"][it], file_data["lat"][it]),
+                    xytext=(0, 3),  # use 3 points offset
+                    textcoords="offset points",  # in both directions
+                    ha='right', va='bottom')
         handles.append(plot)
     plt.legend(handles=handles, loc='lower right')
     pdf.savefig(fig)
