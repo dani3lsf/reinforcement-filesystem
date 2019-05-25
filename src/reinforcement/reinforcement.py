@@ -27,19 +27,25 @@ class ReinforcementLearning(object):
         self.config, _ = get_config()
 
         """ Batch of Services """
-        self.services = ServiceBatchGenerator(self.config.batch_size, self.config.min_length, self.config.max_length,
+        self.services = ServiceBatchGenerator(self.config.batch_size,
+                                              self.config.min_length,
+                                              self.config.max_length,
                                               self.config.num_descriptors)
 
         """ Agent """
         state_size_sequence = self.config.max_length
         state_size_embeddings = self.config.num_descriptors  # OH Vector embedding
         action_size = self.config.num_bins
-        self.agent = Agent(state_size_embeddings, state_size_sequence, action_size, self.config.batch_size, self.config.learning_rate,
-                      self.config.hidden_dim, self.config.num_stacks)
+        self.agent = Agent(state_size_embeddings, state_size_sequence,
+                           action_size, self.config.batch_size,
+                           self.config.learning_rate, self.config.hidden_dim,
+                           self.config.num_stacks)
 
         """ Configure Saver to save & restore model variables """
-        variables_to_save = [v for v in tf.global_variables() if 'Adam' not in v.name]
-        saver = tf.train.Saver(var_list=variables_to_save, keep_checkpoint_every_n_hours=1.0)
+        variables_to_save = [v for v in tf.global_variables()
+                             if 'Adam' not in v.name]
+        saver = tf.train.Saver(var_list=variables_to_save,
+                               keep_checkpoint_every_n_hours=1.0)
 
         self.choosen_positions = mp.Array('i', np.zeros(self.config.num_descriptors, dtype=int), lock=True)
         self.done = mp.Value(ctypes.c_bool,False)
@@ -91,28 +97,25 @@ class ReinforcementLearning(object):
                 # Vector embedding
                 input_state = vector_embedding(self.services)
 
-
-
                 # Compute placement
                 feed = {self.agent.input_: input_state,
                         self.agent.input_len_: [item for item in self.services.serviceLength]}
                 positions = self.sess.run(self.agent.ptr.positions, feed_dict=feed)
 
 
-                self.accesses = self.metadata.calculate_accesses()
+                self.env.accesses = self.metadata.calculate_accesses()
                 reward = np.zeros(self.config.batch_size)
-                
+
                 # Compute environment
                 for batch in range(self.config.batch_size):
                     # print(positions[batch])
                     # print(services.state[batch])
                     self.env.clear()
-                    #placement -> bin -> positions
-                    #service -> ptk -> services
-                    self.env.step(positions[batch], self.services.state[batch], self.services.serviceLength[batch])
+                    # placement -> bin -> positions
+                    # service -> ptk -> services
+                    self.env.step(positions[batch], self.services.state[batch],
+                                  self.services.serviceLength[batch])
                     reward[batch] = self.env.reward
-
-                
 
                 index, value = max(enumerate(reward), key=operator.itemgetter(1))
 
@@ -121,7 +124,9 @@ class ReinforcementLearning(object):
                 old_positions_reward = self.env.reward
  
                 if old_positions_reward < value:                
-                    choosen = [xb for xa, xb in sorted(zip(self.services.state[index],positions[index]))]                
+                    choosen = [xb for xa, xb in sorted(zip(
+                        self.services.state[index],
+                        positions[index]))]                
                     self.choosen_positions[:] = choosen
                 # RL Learning
 
@@ -129,7 +134,8 @@ class ReinforcementLearning(object):
                         self.agent.positions_holder: positions,
                         self.agent.input_: input_state, self.agent.input_len_: [item for item in self.services.serviceLength]}
 
-                summary, _ = self.sess.run([self.agent.merged, self.agent.train_step], feed_dict=feed)
+                summary, _ = self.sess.run([self.agent.merged, self.agent.train_step],
+                                           feed_dict=feed)
 
                 if e % 10 == 0:
                     print("\n Mean batch ", e, "reward:", np.mean(reward), file=f)
@@ -148,11 +154,10 @@ class ReinforcementLearning(object):
                 save_path = self.saver.save(self.sess, "save/tf_binpacking.ckpt")
                 print("\n Model saved in file: %s" % save_path)
 
-            #self.env.render(0)
+            # self.env.render(0)
 
     def get_positions(self):
         return self.choosen_positions[:]
-
 
     def set_done(self):
         self.done.value = True
