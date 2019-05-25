@@ -6,29 +6,25 @@
     Date: October 2018
 """
 import logging
-import tensorflow as tf
-#from environment import *
-#from service_batch_generator import *
-#from agent import *
-from tensorflow.python import debug as tf_debug
 import operator
+import ctypes
+import tensorflow as tf
+import multiprocessing as mp
+
+# from environment import *
+# from service_batch_generator import *
+# from agent import *
+from tensorflow.python import debug as tf_debug
 from src.reinforcement.environment import  Environment
 from src.reinforcement import get_config, Agent, vector_embedding, np
 from src.reinforcement.service_batch_generator import ServiceBatchGenerator
 
-import multiprocessing as mp
-
-import ctypes
-
 class ReinforcementLearning(object):
-
 
     def __init__(self):
 
         """ Configuration """
         self.config, _ = get_config()
-
-
 
         """ Batch of Services """
         self.services = ServiceBatchGenerator(self.config.batch_size, self.config.min_length, self.config.max_length,
@@ -57,11 +53,8 @@ class ReinforcementLearning(object):
         self.env = Environment(self.config.num_bins, self.config.num_slots, self.config.num_descriptors,
                                self.config.file_size, metadata)
 
-
         # Run initialize op
         self.sess.run( tf.global_variables_initializer())
-
-
 
         # Print total number of parameters
         total_parameters = 0
@@ -74,8 +67,6 @@ class ReinforcementLearning(object):
             print('Shape: ', shape, 'Variables: ', variable_parameters)
             total_parameters += variable_parameters
         print('Total_parameters: ', total_parameters)
-
-
 
         # Restore variables from disk
         if self.config.load_model:
@@ -108,7 +99,7 @@ class ReinforcementLearning(object):
                 positions = self.sess.run(self.agent.ptr.positions, feed_dict=feed)
 
 
-                self.env.calculate_accesses()
+                self.accesses = self.metadata.calculate_accesses()
                 reward = np.zeros(self.config.batch_size)
                 
                 # Compute environment

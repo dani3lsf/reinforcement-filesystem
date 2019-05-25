@@ -38,6 +38,7 @@ FILE_SIZE = None
 MOUNTPOINT = None
 TRAIN = None
 
+
 def calc_latency_with_migration(latency, migration_time):
     nr_reads = int((C_RUNTIME * 60)/latency)
     ret = ((C_RUNTIME * 60) + (migration_time))/nr_reads
@@ -70,7 +71,6 @@ def target_fun():
 
     output_bench = "%s/bench.csv" % OUTPUT_PATH
 
-
     script = 'python3 benchmark.py -b -m %s -n %d -s %s > /dev/null' %\
              (MOUNTPOINT, NUMBER_FILES, FILE_SIZE)
 
@@ -79,8 +79,7 @@ def target_fun():
     outs, errs = proc.communicate()
     proc.kill()
 
-
-    if TRAIN == True:
+    if TRAIN:
 
         RL = ReinforcementLearning()
 
@@ -91,7 +90,7 @@ def target_fun():
 
     else:
         print("Using heuristic...")
-   
+
     # Runs
     writer = initiate_output()
 
@@ -102,7 +101,8 @@ def target_fun():
         if not os.path.exists(filename):
             os.mknod(filename)
 
-        command = "/usr/bin/python2 /usr/bin/dstat -c -d -m -t --output %s 60" % filename
+        command = "/usr/bin/python2 /usr/bin/dstat -c -d -m -t --output %s 60"\
+                % filename
 
         # Initialize dstat
         # print(command)
@@ -130,12 +130,11 @@ def target_fun():
         manager = mp.Manager()
         cloud_migration_data = manager.list()
 
-        if TRAIN == True:
+        if TRAIN:
             positions = RL.get_positions()
 
-
             proc_decision = mp.Process(target=META.migration_data_rl,
-                                       args=(cloud_migration_data,positions,))
+                                       args=(cloud_migration_data, positions,))
 
         else:
             proc_decision = mp.Process(target=META.migration_data,
@@ -165,10 +164,12 @@ def target_fun():
         # Update bench output
         df = pd.read_csv(output_bench, dtype='float64', index_col=0)
         df.at[float(CURR_ITERATION), 'Latency w/ Migration'] = \
-            calc_latency_with_migration(df.at[float(CURR_ITERATION), 'Latency'],
+            calc_latency_with_migration(df.at[float(CURR_ITERATION),
+                                              'Latency'],
                                         migration_time)
         df.at[float(CURR_ITERATION), 'Throughtput w/ Migration'] = \
-            calc_throughput_with_migration(df.at[float(CURR_ITERATION), 'Throughtput'],
+            calc_throughput_with_migration(df.at[float(CURR_ITERATION),
+                                                 'Throughtput'],
                                            migration_time)
         df.at[float(CURR_ITERATION), 'Migration Number'] = migration_nf
         df.to_csv(output_bench, index=True, header=True)
@@ -177,12 +178,12 @@ def target_fun():
         dstat_proc.kill()
 
         # Reset metadata when iteration is over
-        META.reset()
+        # META.reset()
 
         # Increment iteration
         CURR_ITERATION += 1
 
-    if TRAIN == True:
+    if TRAIN:
         RL.set_done()
         rl_process.join()
 
@@ -282,8 +283,6 @@ def main():
     provider = Provider(local)
     PROVIDERS['local2'] = provider
 
-
-
     # Initializing Metadata
     META = Metadata()
 
@@ -301,9 +300,9 @@ def main():
     #                       kwargs={'foreground': True})
     # fuse_proc.start()
 
+
 def str2bool(v):
     return v.lower() in ('true', '1')
-
 
 if __name__ == '__main__':
     signal.signal(signal.SIGTERM, signal_handler)

@@ -7,6 +7,7 @@ import regex as re
 import matplotlib.pyplot as plt
 import matplotlib.backends.backend_pdf
 
+
 def proc_file(f):
     csv_reader = csv.DictReader(f)
     res = {}
@@ -25,7 +26,7 @@ def proc_file(f):
         thrp_m.append(float(row["Throughtput w/ Migration"]))
         nmf.append(float(row["Migration Number"]))
         line_count += 1
-    
+
     res["its"] = its
     res["lat"] = lat
     res["thrp"] = thrp
@@ -34,6 +35,7 @@ def proc_file(f):
     res["nmf"] = nmf
 
     return res
+
 
 def proc_name(path, filenames):
     match = re.search(r'(?<=(/?))\w+(?=.csv)', path)
@@ -44,27 +46,28 @@ def proc_name(path, filenames):
             filename = filename_original + "_" + str(suffix)
             suffix += 1
 
-    return filename   
+    return filename
+
 
 def draw_graph(files_data):
     pdf = matplotlib.backends.backend_pdf.PdfPages("output.pdf")
     fig = plt.figure()
-    plt.xlabel('iterações')
-    plt.ylabel('latência (s/read)')
+    plt.xlabel('Iterações')
+    plt.ylabel('Latência (s/read)')
     plt.title("Latência por iteração s/migração")
     handles = []
     for file_name, file_data in files_data.items():
         plot, = plt.plot(file_data["its"], file_data["lat"], label=file_name)
         for it in range(0,len(file_data["its"])):
             plt.annotate('{}'.format(file_data["nmf"][it]),
-                    xy=(file_data["its"][it], file_data["lat"][it]),
-                    xytext=(0, 3),  # use 3 points offset
-                    textcoords="offset points",  # in both directions
-                    ha='right', va='bottom')
+                         xy=(file_data["its"][it], file_data["lat"][it]),
+                         xytext=(0, 3),  # use 3 points offset
+                         textcoords="offset points",  # in both directions
+                         ha='right', va='bottom')
         handles.append(plot)
     plt.legend(handles=handles, loc='lower right')
     pdf.savefig(fig)
-    
+
     fig = plt.figure()
     plt.xlabel('iterações')
     plt.ylabel('latência (s/read)')
@@ -72,7 +75,7 @@ def draw_graph(files_data):
     handles = []
     for file_name, file_data in files_data.items():
         plot, = plt.plot(file_data["its"], file_data["lat_m"], label=file_name)
-        for it in range(0,len(file_data["its"])):
+        for it in range(0, len(file_data["its"])):
             plt.annotate('{}'.format(file_data["nmf"][it]),
                     xy=(file_data["its"][it], file_data["lat_m"][it]),
                     xytext=(0, 3),  # use 3 points offset
@@ -81,7 +84,7 @@ def draw_graph(files_data):
         handles.append(plot)
     plt.legend(handles=handles, loc='lower right')
     pdf.savefig(fig)
-    
+
     fig = plt.figure()
     plt.xlabel('iterações')
     plt.ylabel('débito (read/s)')
@@ -89,7 +92,7 @@ def draw_graph(files_data):
     handles = []
     for file_name, file_data in files_data.items():
         plot, = plt.plot(file_data["its"], file_data["thrp"], label=file_name)
-        for it in range(0,len(file_data["its"])):
+        for it in range(0, len(file_data["its"])):
             plt.annotate('{}'.format(file_data["nmf"][it]),
                     xy=(file_data["its"][it], file_data["thrp"][it]),
                     xytext=(0, 3),  # use 3 points offset
@@ -117,9 +120,7 @@ def draw_graph(files_data):
     pdf.savefig(fig)
 
     pdf.close()
-    
 
-    
 
 def main(files):
 

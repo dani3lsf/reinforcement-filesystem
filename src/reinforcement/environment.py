@@ -8,6 +8,7 @@ import re
 from multiprocessing import Queue
 from collections import Counter
 
+
 class Environment(object):
     """
         Implementation of the black-boxed environment
@@ -28,7 +29,7 @@ class Environment(object):
     """
     def __init__(self, numBins, numSlots, numDescriptors, fileSize, metadata):
 
-        #self.w = Watcher('mops/mp1', 'mops/mp2')
+        # self.w = Watcher('mops/mp1', 'mops/mp2')
 
         # Environment properties
         self.numBins = numBins
@@ -36,9 +37,9 @@ class Environment(object):
         self.numDescriptors = numDescriptors
         self.cells = {0: (8000000, []), 1: (4000000, []) }
         self.initial_cloud_size = [8000000,40000000]
-        #self.cells = np.empty((numBins, numSlots))
-        #self.cells[:] = np.nan
-        #self.service_properties = [{"size": 1} for _ in range(numDescriptors)]
+        # self.cells = np.empty((numBins, numSlots))
+        # self.cells[:] = np.nan
+        # self.service_properties = [{"size": 1} for _ in range(numDescriptors)]
 
         # Placement properties
         self.serviceLength = 0
@@ -52,13 +53,10 @@ class Environment(object):
 
         self.metadata = metadata
 
-        self.acesses = {}
-
-
+        self.accesses = {}
 
     def _placePacket(self, i, bin, pkt):
         """ Place Packet """
-
 
         (cloud_size, fichs) = self.cells[bin]
         if cloud_size < self.fileSize:
@@ -69,8 +67,6 @@ class Environment(object):
             cloud_size -= self.fileSize
             fichs.append(pkt)
             self.cells[bin] = (cloud_size, fichs)
-
-
 
     def _computeReward(self):
         """ Compute reward """
@@ -83,14 +79,13 @@ class Environment(object):
 
         bin_speed = [5, 1]
 
-
         total = 0.1
         suma = 0
 
-        access = np.zeros( self.numDescriptors)
+        access = np.zeros(self.numDescriptors)
 
-        for k1,v1 in self.acesses.items():
-            v2 = int(re.findall('\d+',k1)[0])
+        for k1, v1 in self.accesses.items():
+            v2 = int(re.findall('\d+', k1)[0])
             access[v2] = v1
 
         # access = [0,0,45,7,0,0,26,12,67,0,0,0,0,0,0,
@@ -102,35 +97,31 @@ class Environment(object):
         #           50,23,78,0,0,0,45,19,49,120
         #           ]
 
-        #print(access)
+        # print(access)
         for i in range(self.numDescriptors):
             if i in pkts:
-                    #self.watcher.get_nr_of_reads('dummy' + i)
+                # self.watcher.get_nr_of_reads('dummy' + i)
                 suma += bin_speed[pkts[i]] * access[i]
                 total += access[i]
-	
-        next_average = suma / total
 
+        next_average = suma / total
 
         if next_average == 0:
             reward = 5
         else:
-            reward = np.power(5,5 / next_average)
-            #reward = 200 * 1/next_average
-            #reward = -5 * (np.log(next_average)/np.log(2)) + 35
+            reward = np.power(5, 5 / next_average)
+            # reward = 200 * 1/next_average
+            # reward = -5 * (np.log(next_average)/np.log(2)) + 35
 
-        #print(next_average)
-        #reward = np.sum(np.power(100, occupancy))
-        #print(reward)
+        # print(next_average)
+        # reward = np.sum(np.power(100, occupancy))
+        # print(reward)
 
-        #print(reward)
+        # print(reward)
 
-        #reward = next_average * 100;
-
+        # reward = next_average * 100;
 
         return reward
-
-
 
     def step(self, placement, service, length):
         """ Place service """
@@ -148,23 +139,6 @@ class Environment(object):
             self.reward = 1 - self.invalidPlacement * 0.01
         else:
             self.reward = self._computeReward()
-
-    def calculate_accesses(self):
-        self.acesses = {}
-        access2_queue = self.metadata.get_files_accessed()
-        access2 = []
-
-        while not access2_queue.empty():
-            access2.append(access2_queue.get())
-
-
-        for item in access2:
-            access2_queue.put(item)
-
-        #get_files_cloud
-        self.acesses = dict(Counter(access2))
-
-
 
     def clear(self):
         """ Clean environment """
@@ -201,12 +175,9 @@ class Environment(object):
         print(wide)
 
         # Plot slot labels
-    #    for slot in range(max(self.initial_cloud_size)):
-     #       x = wide * slot + slot * margin + margin_ext
-         #   plt.text(x + 0.5 * wide, -3, "slot{}".format(slot), ha="center", family='sans-serif', size=8)
-
-
-
+        # for slot in range(max(self.initial_cloud_size)):
+        # x = wide * slot + slot * margin + margin_ext
+        # plt.text(x + 0.5 * wide, -3, "slot{}".format(slot), ha="center", family='sans-serif', size=8)
 
         # Plot bin labels & place empty boxes
         for bin in range(self.numBins):
@@ -217,7 +188,6 @@ class Environment(object):
                 x = wide * slot + slot * margin + margin_ext
                 rectangle = mpatches.Rectangle((x, y), wide, high, linewidth=1, edgecolor='black', facecolor='none')
                 ax.add_patch(rectangle)
-
 
         print(self.serviceLength)
         # Select serviceLength colors from a colormap
@@ -239,7 +209,6 @@ class Environment(object):
                 y = -high * (bin + 1) - bin * margin - margin_ext
                 rectangle = mpatches.Rectangle((x, y), wide, high, linewidth=1, facecolor=colormap[idx], alpha=.9)
                 ax.add_patch(rectangle)
-
 
         print(self.first_slots)
         print(self.cells)

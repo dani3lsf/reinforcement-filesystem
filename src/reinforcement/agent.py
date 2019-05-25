@@ -100,10 +100,10 @@ class DynamicMultiRNN(object):
         )
 
         states_series, current_state = tf.nn.dynamic_rnn(cells, input_, initial_state=rnn_tuple_state, sequence_length=input_len_)
-        #states_series = tf.Print(states_series, ["states_series", states_series, tf.shape(states_series)], summarize=10)
+        # states_series = tf.Print(states_series, ["states_series", states_series, tf.shape(states_series)], summarize=10)
 
         self.outputs = tf.layers.dense(states_series, self.action_size, activation=tf.nn.softmax)       # [Batch, seq_length, action_size]
-        #self.outputs = tf.Print(self.outputs, ["outputs", self.outputs, tf.shape(self.outputs)],summarize=10)
+        # self.outputs = tf.Print(self.outputs, ["outputs", self.outputs, tf.shape(self.outputs)],summarize=10)
 
         # Multinomial distribution
         prob = tf.contrib.distributions.Categorical(probs=self.outputs)
@@ -111,7 +111,7 @@ class DynamicMultiRNN(object):
         # Sample from distribution
         self.positions = prob.sample()        # [Batch, seq_length]
         self.positions = tf.cast(self.positions, tf.int32)
-        #self.positions = tf.Print(self.positions, ["position", self.positions, tf.shape(self.positions)], summarize=10)
+        # self.positions = tf.Print(self.positions, ["position", self.positions, tf.shape(self.positions)], summarize=10)
 
 
 class Agent:
@@ -121,7 +121,7 @@ class Agent:
         # Training config (agent)
         self.learning_rate = learning_rate
         self.global_step = tf.Variable(0, trainable=False, name="global_step")  # global step
-        #self.lr_start = config.lr_start  # initial learning rate
+        # self.lr_start = config.lr_start  # initial learning rate
         self.lr1_decay_rate = config.lr_decay_rate  # learning rate decay rate
         self.lr1_decay_step = config.lr_decay_step  # learning rate decay step
         self.lr1_start = 0.1
@@ -136,7 +136,7 @@ class Agent:
         # Tensor block holding the input sequences [Batch Size, Sequence Length, Features]
         self.input_ = tf.placeholder(tf.float32, [self.batch_size, self.state_maxServiceLength, self.state_size_embeddings], name="input")
         self.input_len_ = tf.placeholder(tf.float32, [self.batch_size], name="input_len")
-        #self.learning_rate =tf.placeholder(tf.float32,shape=[],name="learning_rate")
+        # self.learning_rate =tf.placeholder(tf.float32,shape=[],name="learning_rate")
 
 
         self._build_model()
@@ -158,37 +158,36 @@ class Agent:
             self.positions_holder = tf.placeholder(tf.float32, [self.batch_size, self.state_maxServiceLength], name="positions_holder")
 
             # Optimizer learning rate
-           # opt = tf.train.exponential_decay(self.lr1_start, self.global_step, self.lr1_decay_step, self.lr1_decay_rate, staircase=False, name="learning_rate1")
-            #opt = tf.train.MomentumOptimizer(learning_rate=self.learning_rate,momentum=0.9)
+            # opt = tf.train.exponential_decay(self.lr1_start, self.global_step, self.lr1_decay_step, self.lr1_decay_rate, staircase=False, name="learning_rate1")
+            # opt = tf.train.MomentumOptimizer(learning_rate=self.learning_rate,momentum=0.9)
             opt = tf.train.AdamOptimizer(learning_rate=self.learning_rate, beta1=0.9, beta2=0.99, epsilon=0.0000001)
-            #opt = tf.train.AdagradOptimizer(learning_rate=self.learning_rate)
-            #opt = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate)
-            #opt = tf.train.GradientDescentOptimizer(learning_rate=self.learning_rate)
+            # opt = tf.train.AdagradOptimizer(learning_rate=self.learning_rate)
+            # opt = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate)
+            # opt = tf.train.GradientDescentOptimizer(learning_rate=self.learning_rate)
 
             # Multinomial distribution
             probs = tf.contrib.distributions.Categorical(probs=self.ptr.outputs)
             log_softmax = probs.log_prob(self.positions_holder)         # [Batch, seq_length]
-            #log_softmax = tf.Print(log_softmax, ["log_softmax", log_softmax, tf.shape(log_softmax)])
-
+            # log_softmax = tf.Print(log_softmax, ["log_softmax", log_softmax, tf.shape(log_softmax)])
 
             log_softmax_mean = tf.reduce_sum(log_softmax,1)                  # [Batch]
-            #log_softmax_mean = tf.Print(log_softmax_mean, ["log_softmax_mean",log_softmax_mean, tf.shape(log_softmax_mean)])
+            # log_softmax_mean = tf.Print(log_softmax_mean, ["log_softmax_mean",log_softmax_mean, tf.shape(log_softmax_mean)])
             variable_summaries('log_softmax_mean', log_softmax_mean, with_max_min=True)
 
             reward = tf.divide(1000.0, self.reward_holder, name="div")      # [Batch]
-            #reward = tf.Print(reward, ["reward", reward])
+            # reward = tf.Print(reward, ["reward", reward])
 
             reward = tf.stop_gradient(reward)
 
             # Compute Loss
             loss = tf.reduce_mean(reward * log_softmax_mean, 0)     # Scalar
-            #loss = tf.Print(loss, ["loss", loss])
+            # loss = tf.Print(loss, ["loss", loss])
             tf.summary.scalar('loss', loss)
 
             # Minimize step
             gvs = opt.compute_gradients(loss)
 
-            #Clipping
+            # Clipping
             capped_gvs = [(tf.clip_by_norm(grad, 1.), var) for grad, var in gvs if grad is not None]  # L2 clip
 
             self.train_step = opt.apply_gradients(capped_gvs)
