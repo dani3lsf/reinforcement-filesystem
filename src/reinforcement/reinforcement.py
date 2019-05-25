@@ -15,7 +15,7 @@ import multiprocessing as mp
 # from service_batch_generator import *
 # from agent import *
 from tensorflow.python import debug as tf_debug
-from src.reinforcement.environment import  Environment
+from src.reinforcement.environment import Environment
 from src.reinforcement import get_config, Agent, vector_embedding, np
 from src.reinforcement.service_batch_generator import ServiceBatchGenerator
 
@@ -48,11 +48,11 @@ class ReinforcementLearning(object):
                                keep_checkpoint_every_n_hours=1.0)
 
         self.choosen_positions = mp.Array('i', np.zeros(self.config.num_descriptors, dtype=int), lock=True)
-        self.done = mp.Value(ctypes.c_bool,False)
+        self.done = mp.Value(ctypes.c_bool, False)
 
     def run(self, metadata):
-        
-        f = open('rewards.txt','w')
+
+        f = open('rewards.txt', 'w')
         self.sess = tf.Session()
 
         """ Environment """
@@ -60,7 +60,7 @@ class ReinforcementLearning(object):
                                self.config.file_size, metadata)
 
         # Run initialize op
-        self.sess.run( tf.global_variables_initializer())
+        self.sess.run(tf.global_variables_initializer())
 
         # Print total number of parameters
         total_parameters = 0
@@ -87,8 +87,8 @@ class ReinforcementLearning(object):
 
             # Main Loop
             print("\n Starting training...")
-            e=0
-            #for e in tqdm(range(self.config.num_epoch)):
+            e = 0
+            # for e in tqdm(range(self.config.num_epoch)):
             while not self.done.value:
 
                 # New batch of states
@@ -102,8 +102,7 @@ class ReinforcementLearning(object):
                         self.agent.input_len_: [item for item in self.services.serviceLength]}
                 positions = self.sess.run(self.agent.ptr.positions, feed_dict=feed)
 
-
-                self.env.accesses = self.metadata.calculate_accesses()
+                self.env.accesses = metadata.calculate_accesses()
                 reward = np.zeros(self.config.batch_size)
 
                 # Compute environment
@@ -173,6 +172,3 @@ if __name__ == "__main__":
     rl.run()
 
     print(rl.getPositions())
-
-
-
