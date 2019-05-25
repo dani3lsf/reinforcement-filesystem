@@ -1,19 +1,22 @@
 import threading
 import numpy as np
+import re
 
 from datetime import datetime, timedelta
 from src.metadata.cloud_managment import CloudManagement
 from src.exceptions.exceptions import InsufficientSpaceException
-from multiprocessing import Process, Manager
+from multiprocessing import Process, Manager, Queue
+
 
 CUT_TIME_SECONDS = 60
-
+RECORDED_READS = 250
 
 class Metadata():
 
     def __init__(self):
         self.manager = Manager()
         self.files = self.manager.dict()
+        self.last_reads = Queue(RECORDED_READS)
         self.clouds = CloudManagement()
         self.lock = threading.RLock()
 
@@ -47,6 +50,10 @@ class Metadata():
             # print(self.files[file]['accesses'])
             self.files[file]['accesses'] += 1
             # print(self.files[file]['accesses'])
+            if(self.last_reads.full()):
+                self.last_reads.get()
+            self.last_reads.put(file)
+
 
     def add_file(self, file_name, file_length):
         cloud_id, cloud_name = self.choose_cloud_for_insertion(file_length)
@@ -102,11 +109,15 @@ class Metadata():
             
         return res
 
+    def get_files_accessed(self):
+        return self.last_reads
+
+
     def get_files_accesses(self):
         res = {}
         for file_name, file_info in self.files.items():
             res[file_name] = file_info['accesses']
-            
+
         return res
 
     def test_if_fits(self, length, cloud):
@@ -179,6 +190,21 @@ class Metadata():
                     clouds_migration_data.append((file_name, cloud_id,
                                                   cloud_id + 1, self.files[file_name]['length']))
 
+        return clouds_migration_data
+
+
+    def migration_data_rl(self, clouds_migration_data, positions):
+        # self.update_all()
+
+        for file_name, file_info in self.files.items():
+            id =  int(re.findall('\d+',file_name)[0])
+            pos = positions[id]
+            if pos == 0 and file_info['cloud'] == 'local2':
+                clouds_migration_data.append((file_name, 1,
+                                                  0, self.files[file_name]['length']))
+            elif pos == 1 and file_info['cloud'] == 'local1':
+                clouds_migration_data.append((file_name, 0,
+                                              1, self.files[file_name]['length']))
         return clouds_migration_data
 
     # def migration_data(self):

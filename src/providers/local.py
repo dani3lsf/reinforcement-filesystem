@@ -116,3 +116,6 @@ class Local:
         os.lseek(fh, offset, os.SEEK_SET)
         # print("WRITE SUCESSO")
         return os.write(fh, buf)
+
+    def release(self, fh):
+        return os.close(fh)

@@ -17,16 +17,13 @@ import pandas as pd
 import multiprocessing as mp
 
 from src.fuse.fuse_impl import ProviderFS
-from src.fuse.fuse_impl2 import ProviderFS_No_Migration
 from src.providers.provider import Provider
-from src.providers.dropbox import Dropbox
 from src.providers.local import Local
-from src.providers.google_drive import GoogleDrive
-from datetime import datetime, timedelta
 from src.metadata.metadata import Metadata
 from src.exceptions.exceptions import ProgramKilled, InsufficientSpaceException
 from src.migration.migration import Migration
 from fuse import FUSE
+from src.reinforcement.reinforcement import *
 
 # WAIT_TIME_SECONDS = 10
 CURR_ITERATION = 0
@@ -39,7 +36,7 @@ OUTPUT_PATH = None
 NUMBER_FILES = None
 FILE_SIZE = None
 MOUNTPOINT = None
-
+TRAIN = None
 
 def calc_latency_with_migration(latency, migration_time):
     nr_reads = int((C_RUNTIME * 60)/latency)
@@ -62,7 +59,7 @@ def target_fun():
     global FILE_SIZE, NUMBER_FILES, MOUNTPOINT, OUTPUT_PATH
 
     # time.sleep(10)
-
+    
     # Remove results folder and files if it exists
     if os.path.isdir(OUTPUT_PATH):
         shutil.rmtree(OUTPUT_PATH)
@@ -73,6 +70,7 @@ def target_fun():
 
     output_bench = "%s/bench.csv" % OUTPUT_PATH
 
+
     script = 'python3 benchmark.py -b -m %s -n %d -s %s > /dev/null' %\
              (MOUNTPOINT, NUMBER_FILES, FILE_SIZE)
 
@@ -81,6 +79,19 @@ def target_fun():
     outs, errs = proc.communicate()
     proc.kill()
 
+
+    if TRAIN == True:
+
+        RL = ReinforcementLearning()
+
+        print("Starting Reinforcement Learning...")
+
+        rl_process = mp.Process(target=RL.run, args=[META])
+        rl_process.start()
+
+    else:
+        print("Using heuristic...")
+   
     # Runs
     writer = initiate_output()
 
@@ -91,7 +102,7 @@ def target_fun():
         if not os.path.exists(filename):
             os.mknod(filename)
 
-        command = "dstat -c -d -m -t --output %s 60" % filename
+        command = "/usr/bin/python2 /usr/bin/dstat -c -d -m -t --output %s 60" % filename
 
         # Initialize dstat
         # print(command)
@@ -119,8 +130,17 @@ def target_fun():
         manager = mp.Manager()
         cloud_migration_data = manager.list()
 
-        proc_decision = mp.Process(target=META.migration_data,
-                                   args=(cloud_migration_data,))
+        if TRAIN == True:
+            positions = RL.get_positions()
+
+
+            proc_decision = mp.Process(target=META.migration_data_rl,
+                                       args=(cloud_migration_data,positions,))
+
+        else:
+            proc_decision = mp.Process(target=META.migration_data,
+                                       args=(cloud_migration_data,))
+
         proc_decision.start()
         time.sleep(60*D_RUNTIME)
         proc_decision.terminate()
@@ -161,6 +181,10 @@ def target_fun():
 
         # Increment iteration
         CURR_ITERATION += 1
+
+    if TRAIN == True:
+        RL.set_done()
+        rl_process.join()
 
     finish_output(writer)
 
@@ -258,6 +282,8 @@ def main():
     provider = Provider(local)
     PROVIDERS['local2'] = provider
 
+
+
     # Initializing Metadata
     META = Metadata()
 
@@ -275,6 +301,9 @@ def main():
     #                       kwargs={'foreground': True})
     # fuse_proc.start()
 
+def str2bool(v):
+    return v.lower() in ('true', '1')
+
 
 if __name__ == '__main__':
     signal.signal(signal.SIGTERM, signal_handler)
@@ -283,8 +312,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('mountpoint', help='Directory on which'
                         ' the filesystem will be mounted')
-    args = vars(parser.parse_args())
 
+    parser.add_argument('-train_mode', '--train_mode', help="Type of run",
+                        type=str2bool, default=False)
+
+    args = vars(parser.parse_args())
+    TRAIN = args.get('train_mode')
     MOUNTPOINT = args.get('mountpoint')
 
     main()

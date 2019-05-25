@@ -92,3 +92,6 @@ class Provider:
     def rename(self, old, new):
         ret = self.pd.move(old, new)
         return ret
+
+    def release(self, fh):
+        return self.pd.release(self.fh[fh])

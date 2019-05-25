@@ -41,6 +41,8 @@ class Migration(threading.Thread):
         fhr = self.providers[from_cloud].open(path,delay=False)
         # 2- Read com o fh na frm
         bytes_read = self.providers[from_cloud].read(fhr, path, file['length'], 0, delay=False)
+        
+        self.providers[from_cloud].release(fhr)
 
         if bytes_read is None:
             raise Exception
@@ -54,6 +56,7 @@ class Migration(threading.Thread):
 
         try:
             n_bytes_written = self.providers[to_cloud].write(path, bytes_read, 0, fhw)
+            self.providers[to_cloud].release(fhw)
         except Exception as e:
             print(e)
 
@@ -61,7 +64,9 @@ class Migration(threading.Thread):
             raise Exception
         # 5- del da cloud frm
 
+       
         result = self.providers[from_cloud].unlink(path)
+                
 
         if result is False:
             raise Exception
@@ -73,6 +78,8 @@ class Migration(threading.Thread):
         fhr = self.providers[from_cloud].open(path, delay=False)
 
         bytes_read = self.providers[from_cloud].read(fhr, path, file['length'], 0, delay=False)
+
+        self.providers[from_cloud].release(fhr)
 
         if bytes_read is None:
             raise Exception
@@ -105,6 +112,7 @@ class Migration(threading.Thread):
 
         try:
             n_bytes_written = self.providers[to_cloud].write(path, bytes_read, 0, fhw)
+            self.providers[to_cloud].release(fhw)
         except Exception as e:
             print(e)
 
@@ -157,10 +165,7 @@ class Migration(threading.Thread):
         self.metadata.release_lock()
         tf = time.time()
         diff = tf - ti
-        print(diff)
         time_to_wait = self.duration.value - diff
-        print("tempo_a_esperar")
-        print(time_to_wait)
 
         if (time_to_wait > 0):
             time.sleep(time_to_wait)
