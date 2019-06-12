@@ -54,69 +54,77 @@ def draw_graph(files_data):
     fig = plt.figure()
     plt.xlabel('Iterações')
     plt.ylabel('Latência (s/read)')
-    plt.title("Latência por iteração s/migração")
+    plt.title("Latência por iteração s/ migração")
     handles = []
     for file_name, file_data in files_data.items():
         plot, = plt.plot(file_data["its"], file_data["lat"], label=file_name)
         for it in range(0,len(file_data["its"])):
-            plt.annotate('{}'.format(file_data["nmf"][it]),
+            plt.annotate('{}'.format(int(file_data["nmf"][it])),
                          xy=(file_data["its"][it], file_data["lat"][it]),
                          xytext=(0, 3),  # use 3 points offset
                          textcoords="offset points",  # in both directions
                          ha='right', va='bottom')
         handles.append(plot)
     plt.legend(handles=handles, loc='lower right')
+    plt.ylim(bottom=0)
+    plt.ylim(top=7)
     pdf.savefig(fig)
 
     fig = plt.figure()
-    plt.xlabel('iterações')
-    plt.ylabel('latência (s/read)')
-    plt.title("Latência por iteração c/migração")
+    plt.xlabel('Iterações')
+    plt.ylabel('Latência (s/read)')
+    plt.title("Latência por iteração c/ migração")
     handles = []
     for file_name, file_data in files_data.items():
         plot, = plt.plot(file_data["its"], file_data["lat_m"], label=file_name)
         for it in range(0, len(file_data["its"])):
-            plt.annotate('{}'.format(file_data["nmf"][it]),
+            plt.annotate('{}'.format(int(file_data["nmf"][it])),
                     xy=(file_data["its"][it], file_data["lat_m"][it]),
                     xytext=(0, 3),  # use 3 points offset
                     textcoords="offset points",  # in both directions
                     ha='right', va='bottom')
         handles.append(plot)
     plt.legend(handles=handles, loc='lower right')
+    plt.ylim(bottom=0)
+    plt.ylim(top=11)
     pdf.savefig(fig)
 
     fig = plt.figure()
-    plt.xlabel('iterações')
-    plt.ylabel('débito (read/s)')
-    plt.title("Débito por iteração s/migração")
+    plt.xlabel('Iterações')
+    plt.ylabel('Débito (reads/s)')
+    plt.title("Débito por iteração s/ migração")
     handles = []
     for file_name, file_data in files_data.items():
         plot, = plt.plot(file_data["its"], file_data["thrp"], label=file_name)
         for it in range(0, len(file_data["its"])):
-            plt.annotate('{}'.format(file_data["nmf"][it]),
+            plt.annotate('{}'.format(int(file_data["nmf"][it])),
                     xy=(file_data["its"][it], file_data["thrp"][it]),
                     xytext=(0, 3),  # use 3 points offset
                     textcoords="offset points",  # in both directions
                     ha='right', va='bottom')
         handles.append(plot)
     plt.legend(handles=handles, loc='lower right')
+    plt.ylim(bottom=0)
+    plt.ylim(top=0.3)
     pdf.savefig(fig)
 
     fig = plt.figure()
-    plt.xlabel('iterações')
-    plt.ylabel('débito (read/s)')
-    plt.title("Débito por iteração c/migração")
+    plt.xlabel('Iterações')
+    plt.ylabel('Débito (reads/s)')
+    plt.title("Débito por iteração c/ migração")
     handles = []
     for file_name, file_data in files_data.items():
         plot, = plt.plot(file_data["its"], file_data["thrp_m"], label=file_name)
         for it in range(0,len(file_data["its"])):
-            plt.annotate('{}'.format(file_data["nmf"][it]),
+            plt.annotate('{}'.format(int(file_data["nmf"][it])),
                     xy=(file_data["its"][it], file_data["thrp_m"][it]),
                     xytext=(0, 3),  # use 3 points offset
                     textcoords="offset points",  # in both directions
                     ha='right', va='bottom')
         handles.append(plot)
     plt.legend(handles=handles, loc='lower right')
+    plt.ylim(bottom=0)
+    plt.ylim(top=0.25)
     pdf.savefig(fig)
 
     pdf.close()
