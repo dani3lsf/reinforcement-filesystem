@@ -101,8 +101,6 @@ class GoogleDrive:
 
     def read(self, fh, path, length, offset):
         fh.seek(offset)
-        #print("OIOI")
-        #print(len(fh.read(length)))
         return fh.read(length)
 
     def delete(self, path):

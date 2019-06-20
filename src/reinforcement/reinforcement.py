@@ -10,7 +10,7 @@ import operator
 import ctypes
 import tensorflow as tf
 import multiprocessing as mp
-
+import math
 # from environment import *
 # from service_batch_generator import *
 # from agent import *
@@ -121,8 +121,11 @@ class ReinforcementLearning(object):
                 self.env.clear()
                 self.env.step(self.choosen_positions[:], range(100), 100)
                 old_positions_reward = self.env.reward
- 
-                if old_positions_reward < value:                
+
+                average = 5 * math.log(5)/math.log(value)
+                significancy = np.power(5,5 / average) - np.power(5,5 / (average + 0.075))
+
+                if old_positions_reward + significancy < value:
                     choosen = [xb for xa, xb in sorted(zip(
                         self.services.state[index],
                         positions[index]))]                

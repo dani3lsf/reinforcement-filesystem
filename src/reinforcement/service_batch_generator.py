@@ -1,6 +1,6 @@
 #-*- coding: utf-8 -*-
 import numpy as np
-
+import random
 class ServiceBatchGenerator(object):
     """
         Implementation of a random service chain generator
@@ -45,7 +45,7 @@ class ServiceBatchGenerator(object):
                 self.state[batch][i] = pktID
             """
             #[1,2,1,31,20,0,5,0]1
-            self.state[batch] = range(100)
+            self.state[batch] = random.sample(range(100), 100)
             #[2,1,4,6,3,7,5,0]
             #self.state[batch] = [5,1,4,2,7,6,3,0]
             #self.state[batch] = [5,7,0,2,1,6,4,3]

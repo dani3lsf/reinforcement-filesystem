@@ -4,6 +4,7 @@
 import argparse
 import signal
 import os
+import random
 import subprocess
 import yaml
 import time
@@ -15,6 +16,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
 import multiprocessing as mp
+import re
 
 from src.fuse.fuse_impl import ProviderFS
 from src.providers.provider import Provider
@@ -94,7 +96,26 @@ def target_fun():
     # Runs
     writer = initiate_output()
 
+    random.seed(12345678)   
+    #previous_zp = False
+    dists = ["sequential","random","zipfian"]
     for conf in CONFIG["runs"]:
+        (dist, seed, ch) = re.split(r':', conf)
+        if seed:
+            seed = int(seed)
+        else:
+            seed = -1
+
+        if dist == "zipfian" and ch:
+            ch = True
+        else:
+            ch = False
+
+        if dist == "any":
+            dist = random.choice(dists)
+        #    if dist == "zipfian":
+        #        ch = previous_zp == True? True : False
+        #        previous_zp = True
 
         filename = "%s/dstat/dstat_it%s.csv" % (OUTPUT_PATH, CURR_ITERATION)
 
@@ -114,36 +135,45 @@ def target_fun():
         # COLLECTION PHASE
         print("Starting collection phase...")
 
-        script = 'python3 benchmark.py -d %s -r %d -i %d -o %s -m %s > /dev/'\
-                 'null' % (conf, C_RUNTIME, CURR_ITERATION, output_bench,
+        script = 'python3 benchmark.py -d %s -c %r -t %d -r %d -i %d -o %s -m %s > /dev/'\
+                 'null' % (dist, ch, seed, C_RUNTIME, CURR_ITERATION, output_bench,
                            MOUNTPOINT)
 
+        print(script)
         proc = subprocess.Popen(script, shell=True)
 
         outs, errs = proc.communicate()
-
+	
+        proc.kill()
+	
         include_it_info_to_output(writer)
 
         # DECISION PHASE
         print("Starting decision phase...")
 
-        manager = mp.Manager()
-        cloud_migration_data = manager.list()
+        #manager = mp.Manager()
+        #cloud_migration_data = manager.list()
 
+        end_time = time.time() + (D_RUNTIME * 60)
+        
+             
         if TRAIN:
             positions = RL.get_positions()
-
-            proc_decision = mp.Process(target=META.migration_data_rl,
-                                       args=(cloud_migration_data, positions,))
+            cloud_migration_data = META.migration_data_rl(positions)
+            #proc_decision = mp.Process(target=META.migration_data_rl,
+            #                          args=(cloud_migration_data, positions,))
 
         else:
-            proc_decision = mp.Process(target=META.migration_data,
-                                       args=(cloud_migration_data,))
+            cloud_migration_data = META.migration_data()
+            #proc_decision = mp.Process(target=META.migration_data,
+            #                          args=(cloud_migration_data,))
 
-        proc_decision.start()
-        time.sleep(60*D_RUNTIME)
-        proc_decision.terminate()
-
+        while (time.time() < end_time):
+          continue
+       # proc_decision.start()
+        #time.sleep(60*D_RUNTIME)
+       # proc_decision.terminate()
+            
         mig_duration = mp.Value('i')
         mig_files_number = mp.Value('i')
 
@@ -160,6 +190,15 @@ def target_fun():
 
         migration_time = mig_duration.value
         migration_nf = mig_files_number.value
+        
+        #convert_dict = {
+        #    'Iteration':int, 
+        #    'Latency':float,
+        #    'Throughtput':float,
+        #    'Latency w/ Migration':float,
+        #    'Throughtput w/ Migration':float,
+        #    'Migration Number':int
+        #}
 
         # Update bench output
         df = pd.read_csv(output_bench, dtype='float64', index_col=0)
@@ -172,7 +211,9 @@ def target_fun():
                                                  'Throughtput'],
                                            migration_time)
         df.at[float(CURR_ITERATION), 'Migration Number'] = migration_nf
+        df.at[float(CURR_ITERATION), 'Distribution'] = dists.index(dist) 
         df.to_csv(output_bench, index=True, header=True)
+
 
         # Terminate dstat when iteration is over
         dstat_proc.kill()
@@ -183,12 +224,11 @@ def target_fun():
         # Increment iteration
         CURR_ITERATION += 1
 
-    if TRAIN:
-        RL.set_done()
-        rl_process.join()
-
     finish_output(writer)
 
+    if TRAIN:
+        rl_process.terminate() 
+        rl_process.join()
 
 def initiate_output():
     output_file = OUTPUT_PATH + "/heatmap.json"
@@ -211,7 +251,6 @@ def include_it_info_to_output(writer):
         writer.write(string_hits + "\n}\n")
     else:
         writer.write(string_hits + "\n},\n")
-
 
 def finish_output(writer):
     output_file = OUTPUT_PATH + "/heatmap.json"

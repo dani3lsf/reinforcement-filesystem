@@ -6,9 +6,19 @@ import random
 import time
 import os
 import shutil
+import pickle
 import numpy as np
 import pandas as pd
 
+def str2bool(v):
+    if isinstance(v, bool):
+       return v
+    if v.lower() in ('yes', 'true', 'True', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'False', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-n', '--number_of_files', type=int,
@@ -19,6 +29,12 @@ parser.add_argument('-s', '--size', type=int, help='Size for each file (MB)',
 parser.add_argument('-d', '--distribution',
                     choices=['sequential', 'random', 'zipfian'],
                     help='Distribution used to read files', default='zipfian')
+parser.add_argument('-c', '--change_hotspots',
+                    type=str2bool,
+                    help='Change or Not Hotspots in Zipfian Dist.', default=False)
+parser.add_argument('-t', '--seed',
+                    type=int,
+                    help='Seed to be user in random', default=12345678)
 parser.add_argument('-r', '--runtime', type=int, help='Runtime in minutes',
                     default=15)
 parser.add_argument('-b', help="If files need to be written",
@@ -68,6 +84,9 @@ if args.get("b") == True:
         file_list.append(filename)
         it += 1
 else:
+    if not os.path.isdir("saved_randoms"):
+        os.mkdir("saved_randoms")
+
     if not os.path.isdir(folder_name):
         raise Exception("Directory doesn't exist")
     else:
@@ -92,7 +111,14 @@ else:
                             f.read()
                             number_of_reads += 1
         elif args.get('distribution') == 'random':
-             random.seed(12345678) 
+             seed = args.get('seed')
+             if seed == -1:
+                # carrega random
+                random_state_recover = pickle.load(open("saved_randoms/random.p","rb"))
+                random.setstate(random_state_recover)            
+             else:
+                 random.seed(seed) 
+
              while time.time() < end_time:
                 next_file = random.randint(0, len(file_list) - 1)
                 file = folder_name + '/dummy' + str(next_file)
@@ -100,11 +126,43 @@ else:
                     print("Reading file... %s" % file)
                     f.read()
                     number_of_reads += 1
+
+             # escreve random
+             random_state = random.getstate()
+             pickle.dump(random_state,open("saved_randoms/random.p","wb"))
+
         else:  # args.get('distribution') == 'zipfian'
             a = 1.7  # TODO: não sei se manter este valor
-            np.random.seed(12345678)
+            
+            seed = args.get('seed')
+            
+  
+            if seed == -1:
+                # carrega random
+                random_state_recover = pickle.load(open("saved_randoms/random.p","rb"))
+                random.setstate(random_state_recover)
+                # carrega numpy random
+                random_state_recover_numpy = pickle.load(open("saved_randoms/random_np.p","rb"))
+                np.random.set_state(random_state_recover_numpy)
+            else:
+                random.seed(seed)
+                # se é a primeira ronda de todas       
+                if not args.get('change_hotspots'):
+                    np.random.seed(seed)
+                # se é a primeira ronda de um conjunto de experiencias
+                else:
+                    # carrega numpy random
+                    random_state_recover_numpy = pickle.load(open("saved_randoms/random_np.p","rb"))
+                    np.random.set_state(random_state_recover_numpy)
+                    # avanca uma iteracao do numpy random
+                    np.random.zipf(a, size=len(file_list))
+
+                # escreve numpy random
+                random_state_numpy = np.random.get_state()
+                pickle.dump(random_state_numpy,open("saved_randoms/random_np.p","wb"))
+
             wgs = np.random.zipf(a, size=len(file_list))
-            random.seed(12345678)
+            
             while time.time() < end_time:
                 next_file = random.choices(file_list, weights=wgs)[0]
                 with open(next_file, 'r') as f:
@@ -112,7 +170,11 @@ else:
                     f.read()
                     number_of_reads += 1
 
-        # Calculations for latency and throughput
+            # escreve random
+            random_state = random.getstate()
+            pickle.dump(random_state,open("saved_randoms/random.p","wb"))
+
+        # Calculations for latency and throughput        
         # Throughput = Number of files read per second
         # Latency = How many seconds does it take# Calculations for latency and throughput
         # Throughput = Number of files read per second
@@ -134,7 +196,9 @@ else:
                  'Throughtput': [throughput],
                  'Latency w/ Migration': [0],
                  'Throughtput w/ Migration': [0],
-                 'Migration Number': [0]}
+                 'Migration Number': [0],
+                 'Distribution':[0]
+                 }
 
             df = pd.DataFrame(data=d)
 

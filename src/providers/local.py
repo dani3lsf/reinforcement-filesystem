@@ -78,22 +78,19 @@ class Local:
         return os.rename(self._full_path(old), self._full_path(new))
 
     def open(self, path, delay=True):
-        # print("==================OPEN=============")
         if delay:
             time.sleep(self.delay)
         full_path = self._full_path(path)
         return os.open(full_path, 32768)
 
     def put(self, bytes, path, overwrite=True, delay=True):
-        # print("==================PUT=============")
         full= self._full_path(path)
-        # print(full)
+
         if delay:
             time.sleep(self.delay)
         full_path = self._full_path(path)
         fh = os.open(full_path, os.O_WRONLY | os.O_CREAT)
-        # print(type(fh))
-        # print("FILE DESCRIPTOR " + str(fh))
+
         return fh
 
     def read(self, fh, path, length, offset):
@@ -101,9 +98,7 @@ class Local:
         return os.read(fh, length)
 
     def write(self, path, buf, offset, fh):
-        # print("==================WRITE=============")
         full = self._full_path(path)
-        # print(full)
         if not (path.endswith('.swp')):
             buf_len = len(buf)
             new_size = self.cur_size + buf_len
@@ -114,7 +109,6 @@ class Local:
                 self.cur_size = new_size
 
         os.lseek(fh, offset, os.SEEK_SET)
-        # print("WRITE SUCESSO")
         return os.write(fh, buf)
 
     def release(self, fh):
