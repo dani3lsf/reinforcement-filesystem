@@ -1,0 +1,19 @@
+---
+output_path: "results"
+
+runtimes:
+  collection: 15
+  decision: 1
+
+files:
+  number: 100
+  size: 100
+
+mountpoint: 'mountpoint'
+
+runs:
+   - "zipfian:12345678:"
+   - "zipfian:12345678:ch"
+   - "zipfian:12345678:ch"
+   - "zipfian:12345678:ch"
+   - "zipfian:12345678:ch"

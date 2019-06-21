@@ -6,6 +6,9 @@ import time
 from shutil import move
 from threading import Thread
 from watcher import Watcher
+from tensorflow.keras.callbacks import TensorBoard
+
+LOGDIR = 'logs/tensorboard/'
 
 class Environment(object):
     def __init__(self, start_state, w):
@@ -35,7 +38,7 @@ class Environment(object):
 
         if next_state[2] == 1 and next_state[0] > next_state[1]:
             reward = 10
-        elif next_state[2] == 1 and next_state[1] > next_state[0]:
+        elif next_state[2] == 2 and next_state[1] > next_state[0]:
             reward = 10
         elif next_state[1] == next_state[0]:
             reward = 0
@@ -83,31 +86,42 @@ def main():
     # whether it chooses to switch file positions
     n_outputs = 1
 
-    learning_rate = 0.01
+    learning_rate = 0.1
     
+    #Initializer capable of adapting its scale to the shape of weights tensors.
     initializer = tf.variance_scaling_initializer()
 
     # inserts a placeholder for a tensor that will be always fed
+    # Basicamente estamos a criar uma variavel que aceita n (None) entradas de tamanho igual
+    # ao n_inputs
     X = tf.placeholder(tf.float32, shape=[None, n_inputs])
 
     hidden = tf.layers.dense(X, n_hidden, activation=tf.nn.elu, kernel_initializer=initializer)
 
     logits = tf.layers.dense(hidden, n_outputs)
+    
 
     outputs = tf.nn.sigmoid(logits)  # probability of action 0 (not to migrate)
 
     p_migrations = tf.concat(axis=1, values=[outputs, 1 - outputs])
 
     action = tf.multinomial(tf.log(p_migrations), num_samples=1)
+    
+    # tf.summary.scalar('action', action)
 
     y = 1. - tf.to_float(action)
 
     cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(labels=y, logits=logits)
+
+    # tf.summary.scalar([name1, name2], cross_entropy)
     optimizer = tf.train.AdamOptimizer(learning_rate)
+    # correct_prediction = tf.equal(tf.argmax(logits,1), tf.argmax(y,1))
+    # accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
     grads_and_vars = optimizer.compute_gradients(cross_entropy)
 
     gradients = [grad for grad, variable in grads_and_vars]
-
+    tf.summary.histogram("gradients", gradients)
     gradient_placeholders = []
     grads_and_vars_feed = []
 
@@ -121,16 +135,21 @@ def main():
     init = tf.global_variables_initializer()
     saver = tf.train.Saver()
     
-    n_runs_per_update = 20
+    n_runs_per_update = 10
     n_max_steps = 10
-    n_iterations = 10
+    n_iterations = 20
     save_iterations = 5
     discount_rate = 0.95
 
     env = Environment([w.get_nr_of_reads('fich1.txt'), w.get_nr_of_reads('fich2.txt'), 1], w)
 
+    # tf.reset_default_graph()
     with tf.Session() as sess:
-        init.run()
+        sess.run(init)
+        # merged_summary = tf.summary.merge_all()
+        writer = tf.summary.FileWriter(LOGDIR + "lr_0.2")
+        writer.add_graph(sess.graph)
+        # init.run()
         for iteration in range(n_iterations):
             print("=" * 79)
             print("\rIteration: {}".format(iteration), end="")
@@ -143,6 +162,9 @@ def main():
                 print(obs)
                 for step in range(n_max_steps):
                     action_val, gradients_val = sess.run([action, gradients], feed_dict={X: np.asarray(obs).reshape(1, n_inputs)})
+                    print("WOW")
+                    print(action_val)
+                    print("WOW")
                     print(action_val[0][0])
                     obs, reward  = env.step(action_val[0][0])
                     print(obs)
@@ -159,6 +181,13 @@ def main():
                 mean_gradients = np.mean([reward * all_gradients[game_index][step][var_index] for game_index, rewards in enumerate(all_rewards) for step, reward in enumerate(rewards)], axis=0)
                 feed_dict[gradient_placeholder] = mean_gradients
             sess.run(training_op, feed_dict=feed_dict)
+
+            writer.add_summary(gradients_val,iteration)
+            
+
+            config = tf.contrib.tensorboard.plugins.projector.ProjectorConfig()
+            tf.contrib.tensorboard.plugins.projector.visualize_embeddings(writer, config)
+
             if iteration % save_iterations == 0:
                 saver.save(sess, "./my_policy_net_pg.ckpt")
 

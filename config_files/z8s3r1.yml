@@ -1,0 +1,26 @@
+---
+output_path: "results"
+
+runtimes:
+  collection: 15
+  decision: 1
+
+files:
+  number: 100
+  size: 100
+
+mountpoint: 'mountpoint'
+
+runs:
+   - "sequential::"
+   - "zipfian:12345678:"
+   - "zipfian::"
+   - "zipfian::"
+   - "sequential::"
+   - "random::"
+   - "zipfian::"
+   - "zipfian::"
+   - "sequential::"
+   - "zipfian::"
+   - "zipfian::"
+   - "zipfian::"

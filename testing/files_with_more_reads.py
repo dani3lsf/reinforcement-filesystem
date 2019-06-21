@@ -2,7 +2,7 @@ import json
 import argparse
 
 
-THRESHOLD = 3
+THRESHOLD = -1
 
 def most_accessed_files(files_data):
     hits = [(file, files_data['hits'][file]) for file in files_data['hits']]
