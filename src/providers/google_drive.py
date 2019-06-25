@@ -85,7 +85,7 @@ class GoogleDrive:
         return ret
 
 
-    def open(self, path):
+    def open(self, path, delay=False):
         request = self.service.files().get_media(fileId=self.items[path[1:]][0])
         fh = io.BytesIO()
         try:
@@ -110,7 +110,7 @@ class GoogleDrive:
         except Exception:
             return False
 
-    def put(self, bytes, path, overwrite=True):
+    def put(self, bytes, path, overwrite=True, delay=False):
         mime = mimetypes.guess_type(path)[0]
         if mime is None:
             mime = 'application/octet-stream'
@@ -144,3 +144,6 @@ class GoogleDrive:
         file_metadata = {'name': to_path[1:]}
         self.service.files().update(fileId=self.items[from_path[1:]][0], body=file_metadata).execute()
         self.items[to_path[1:]] = self.items.pop(from_path[1:])
+
+    def release(self, fh):
+        return 0

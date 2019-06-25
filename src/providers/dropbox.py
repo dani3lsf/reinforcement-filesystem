@@ -61,7 +61,7 @@ class Dropbox:
                 }
         return ret
 
-    def open(self, path):
+    def open(self, path,  delay=False):
         fh = self.api_client.files_download(path)[1].raw.read()
         b = io.BytesIO(fh)
         return b
@@ -77,7 +77,7 @@ class Dropbox:
         except dropbox.exceptions.ApiError:
             return False
 
-    def put(self, bytes, path, overwrite=True):
+    def put(self, bytes, path, overwrite=True, delay=False):
         mode = (dropbox.files.WriteMode.overwrite
                 if overwrite
                 else dropbox.files.WriteMode.add)
@@ -122,3 +122,6 @@ class Dropbox:
             self.items[to_path[1:]] = self.items.pop(from_path[1:])
         except dropbox.exceptions.ApiError:
             return False
+
+    def release(self, fh):
+        return 0
