@@ -34,12 +34,6 @@ def vector_embedding(inputBatch):
     for batch in range(inputBatch.batchSize):
         for i in range(inputBatch.serviceLength[batch]):
 
-            # Packet embeddings OH
-            # Packet1 {1,0,0,0,0,0,0,0}
-            # Packet2 {0,1,0,0,0,0,0,0}
-            # ...
-            # Packet8 {0,0,0,0,0,0,0,1}
-
             embedding = inputBatch.state[batch][i]
             state[batch][i][embedding] = 1
 
@@ -86,7 +80,6 @@ class DynamicMultiRNN(object):
         # Initial state (tuple) is trainable but same for all batch
         for i in range(self.num_layers):
             first_state = tf.get_variable("var{}".format(i), [1, self.num_activations], initializer=initializer)
-            #first_state = tf.Print(first_state, ["first_state", first_state], summarize=10)
 
             c_initial_state = tf.tile(first_state, [self.batch_size, 1])
             h_initial_state = tf.tile(first_state, [self.batch_size, 1])
@@ -100,10 +93,8 @@ class DynamicMultiRNN(object):
         )
 
         states_series, current_state = tf.nn.dynamic_rnn(cells, input_, initial_state=rnn_tuple_state, sequence_length=input_len_)
-        # states_series = tf.Print(states_series, ["states_series", states_series, tf.shape(states_series)], summarize=10)
 
         self.outputs = tf.layers.dense(states_series, self.action_size, activation=tf.nn.softmax)       # [Batch, seq_length, action_size]
-        # self.outputs = tf.Print(self.outputs, ["outputs", self.outputs, tf.shape(self.outputs)],summarize=10)
 
         # Multinomial distribution
         prob = tf.contrib.distributions.Categorical(probs=self.outputs)
@@ -111,8 +102,6 @@ class DynamicMultiRNN(object):
         # Sample from distribution
         self.positions = prob.sample()        # [Batch, seq_length]
         self.positions = tf.cast(self.positions, tf.int32)
-        # self.positions = tf.Print(self.positions, ["position", self.positions, tf.shape(self.positions)], summarize=10)
-
 
 class Agent:
     def __init__(self, state_size_embeddings, state_maxServiceLength, action_size, batch_size, learning_rate, hidden_dim,  num_stacks):
@@ -121,7 +110,6 @@ class Agent:
         # Training config (agent)
         self.learning_rate = learning_rate
         self.global_step = tf.Variable(0, trainable=False, name="global_step")  # global step
-        # self.lr_start = config.lr_start  # initial learning rate
         self.lr1_decay_rate = config.lr_decay_rate  # learning rate decay rate
         self.lr1_decay_step = config.lr_decay_step  # learning rate decay step
         self.lr1_start = 0.1
@@ -136,8 +124,6 @@ class Agent:
         # Tensor block holding the input sequences [Batch Size, Sequence Length, Features]
         self.input_ = tf.placeholder(tf.float32, [self.batch_size, self.state_maxServiceLength, self.state_size_embeddings], name="input")
         self.input_len_ = tf.placeholder(tf.float32, [self.batch_size], name="input_len")
-        # self.learning_rate =tf.placeholder(tf.float32,shape=[],name="learning_rate")
-
 
         self._build_model()
         self._build_optimization()
@@ -168,20 +154,16 @@ class Agent:
             # Multinomial distribution
             probs = tf.contrib.distributions.Categorical(probs=self.ptr.outputs)
             log_softmax = probs.log_prob(self.positions_holder)         # [Batch, seq_length]
-            # log_softmax = tf.Print(log_softmax, ["log_softmax", log_softmax, tf.shape(log_softmax)])
 
             log_softmax_mean = tf.reduce_sum(log_softmax,1)                  # [Batch]
-            # log_softmax_mean = tf.Print(log_softmax_mean, ["log_softmax_mean",log_softmax_mean, tf.shape(log_softmax_mean)])
             variable_summaries('log_softmax_mean', log_softmax_mean, with_max_min=True)
 
             reward = tf.divide(1000.0, self.reward_holder, name="div")      # [Batch]
-            # reward = tf.Print(reward, ["reward", reward])
 
             reward = tf.stop_gradient(reward)
 
             # Compute Loss
             loss = tf.reduce_mean(reward * log_softmax_mean, 0)     # Scalar
-            # loss = tf.Print(loss, ["loss", loss])
             tf.summary.scalar('loss', loss)
 
             # Minimize step

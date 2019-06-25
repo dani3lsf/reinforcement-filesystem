@@ -11,9 +11,6 @@ import ctypes
 import tensorflow as tf
 import multiprocessing as mp
 import math
-# from environment import *
-# from service_batch_generator import *
-# from agent import *
 from tensorflow.python import debug as tf_debug
 from src.reinforcement.environment import Environment
 from src.reinforcement import get_config, Agent, vector_embedding, np
@@ -70,14 +67,11 @@ class ReinforcementLearning(object):
             variable_parameters = 1
             for dim in shape:
                 variable_parameters *= dim.value
-            print('Shape: ', shape, 'Variables: ', variable_parameters)
             total_parameters += variable_parameters
-        print('Total_parameters: ', total_parameters)
 
         # Restore variables from disk
         if self.config.load_model:
             self.saver.restore(self.sess, "save/tf_binpacking.ckpt")
-            print("Model restored.")
 
         # Train model
         if self.config.train_mode:
@@ -86,9 +80,7 @@ class ReinforcementLearning(object):
             writer = tf.summary.FileWriter("summary/repo", self.sess.graph)
 
             # Main Loop
-            print("\n Starting training...")
             e = 0
-            # for e in tqdm(range(self.config.num_epoch)):
             while not self.done.value:
 
                 # New batch of states
@@ -107,11 +99,7 @@ class ReinforcementLearning(object):
 
                 # Compute environment
                 for batch in range(self.config.batch_size):
-                    # print(positions[batch])
-                    # print(services.state[batch])
                     self.env.clear()
-                    # placement -> bin -> positions
-                    # service -> ptk -> services
                     self.env.step(positions[batch], self.services.state[batch],
                                   self.services.serviceLength[batch])
                     reward[batch] = self.env.reward
@@ -140,23 +128,17 @@ class ReinforcementLearning(object):
                                            feed_dict=feed)
 
                 if e % 10 == 0:
-                    print("\n Mean batch ", e, "reward:", np.mean(reward), file=f)
                     writer.add_summary(summary, e)
 
                 # Save intermediary model variables
                 if self.config.save_model and e % max(1, int(self.config.num_epoch / 5)) == 0 and e != 0:
                     save_path = self.saver.save(self.sess, "save/tmp.ckpt", global_step=e)
-                    print("\n Model saved in file: %s" % save_path)
 
                 e += 1
 
-            print("\n Training COMPLETED!")
-
             if self.config.save_model:
                 save_path = self.saver.save(self.sess, "save/tf_binpacking.ckpt")
-                print("\n Model saved in file: %s" % save_path)
 
-            # self.env.render(0)
 
     def get_positions(self):
         return self.choosen_positions[:]
@@ -173,5 +155,3 @@ if __name__ == "__main__":
     rl = ReinforcementLearning(servicelength)
 
     rl.run()
-
-    print(rl.getPositions())

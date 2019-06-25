@@ -22,7 +22,6 @@ class CloudManagement:
                 "total": total_space,
                 "used": used_space})
         self.clouds.sort(key=lambda x: x['speed'])
-        # print(self.clouds)
 
     def __iter__(self):
         for cloud in self.clouds:
@@ -53,13 +52,11 @@ class CloudManagement:
 
     def inc_dec_used_space(self, cloud_id, diff):
         cloud = self.clouds[cloud_id]
-        # print("***** total: " + str(cloud['total']) + " used: " + str(cloud['used']) + "+" + str(diff) + " ******")
         if cloud['used'] + diff > cloud['total']:
             raise InsufficientSpaceException
         self.clouds[cloud_id]['used'] += diff
 
     def get_cloud_id_by_name(self, cloud_name):
-        # print(cloud_name)
         for cloud_id in range(0, len(self.clouds)):
             cloud = self.clouds[cloud_id]
             if cloud['name'] == cloud_name:

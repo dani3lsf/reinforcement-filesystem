@@ -71,13 +71,10 @@ if args.get("b") == True:
     it = 0
 
     while it < args.get('number_of_files'):
-        # size = random.uniform(1.0, args.get('size'))
 
         filename = folder_name + '/dummy' + str(it)
-        # print(filename)
         f = open(filename, 'wb')
         f.seek(int(args.get('size')*1e6) - 1)
-        # print(args.get('size'))
         f.write(b'\0')
 
         print("Creating file... %s" % filename)
@@ -94,8 +91,6 @@ else:
 
         # Calculates time for end of test
         end_time = time.time() + 60 * args.get('runtime')
-        # print(time.time())
-        # print(end_time)
 
         # Initiate variable for number of reads
         number_of_reads = 0
@@ -174,11 +169,6 @@ else:
             random_state = random.getstate()
             pickle.dump(random_state,open("saved_randoms/random.p","wb"))
 
-        # Calculations for latency and throughput        
-        # Throughput = Number of files read per second
-        # Latency = How many seconds does it take# Calculations for latency and throughput
-        # Throughput = Number of files read per second
-        # Latency = How many seconds does it take to read a file
         throughput = number_of_reads/(args.get("runtime") * 60)
         latency = (args.get("runtime") * 60) / number_of_reads
 

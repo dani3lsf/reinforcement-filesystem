@@ -62,7 +62,7 @@ def proc_name(path, filenames):
 def draw_graph(files_data):
     pdf = matplotlib.backends.backend_pdf.PdfPages(OUTPUT_FILE)
     fig = plt.figure()
-    yy = [6.8, 6.55]
+    yy = [10.75, 10.30]
     yy_index = 0
     for div in DIVISIONS:
         plt.axvline(x=div,ls=':')
@@ -96,7 +96,7 @@ def draw_graph(files_data):
 
     plt.legend(handles=handles, loc='lower right')
     plt.ylim(bottom=0)
-    plt.ylim(top=7)
+    plt.ylim(top=11)
     pdf.savefig(fig)
 
     fig = plt.figure()

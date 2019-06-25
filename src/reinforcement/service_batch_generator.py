@@ -37,18 +37,13 @@ class ServiceBatchGenerator(object):
         # Compute random services
         for batch in range(self.batchSize):
             self.serviceLength[batch] = self.maxServiceLength
-                #np.random.randint(self.minServiceLength, self.maxServiceLength+1, dtype='int32')
             """for i in range(1,self.serviceLength[batch]):
                 pktID = np.random.randint(1, self.numDescriptors,  dtype='int32')
                 while pktID in self.state[batch]: 
                    pktID = np.random.randint(1, self.numDescriptors,  dtype='int32')
                 self.state[batch][i] = pktID
             """
-            #[1,2,1,31,20,0,5,0]1
             self.state[batch] = random.sample(range(100), 100)
-            #[2,1,4,6,3,7,5,0]
-            #self.state[batch] = [5,1,4,2,7,6,3,0]
-            #self.state[batch] = [5,7,0,2,1,6,4,3]
 
 if __name__ == "__main__":
 

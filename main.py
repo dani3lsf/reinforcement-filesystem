@@ -126,7 +126,6 @@ def target_fun():
                 % filename
 
         # Initialize dstat
-        # print(command)
 
         dstat_proc = subprocess.Popen(command, shell=True,
                                       stdout=subprocess.PIPE,
@@ -139,7 +138,6 @@ def target_fun():
                  'null' % (dist, ch, seed, C_RUNTIME, CURR_ITERATION, output_bench,
                            MOUNTPOINT)
 
-        print(script)
         proc = subprocess.Popen(script, shell=True)
 
         outs, errs = proc.communicate()
@@ -151,8 +149,6 @@ def target_fun():
         # DECISION PHASE
         print("Starting decision phase...")
 
-        #manager = mp.Manager()
-        #cloud_migration_data = manager.list()
 
         end_time = time.time() + (D_RUNTIME * 60)
         
@@ -160,19 +156,12 @@ def target_fun():
         if TRAIN:
             positions = RL.get_positions()
             cloud_migration_data = META.migration_data_rl(positions)
-            #proc_decision = mp.Process(target=META.migration_data_rl,
-            #                          args=(cloud_migration_data, positions,))
 
         else:
             cloud_migration_data = META.migration_data()
-            #proc_decision = mp.Process(target=META.migration_data,
-            #                          args=(cloud_migration_data,))
 
         while (time.time() < end_time):
           continue
-       # proc_decision.start()
-        #time.sleep(60*D_RUNTIME)
-       # proc_decision.terminate()
             
         mig_duration = mp.Value('i')
         mig_files_number = mp.Value('i')
@@ -190,15 +179,6 @@ def target_fun():
 
         migration_time = mig_duration.value
         migration_nf = mig_files_number.value
-        
-        #convert_dict = {
-        #    'Iteration':int, 
-        #    'Latency':float,
-        #    'Throughtput':float,
-        #    'Latency w/ Migration':float,
-        #    'Throughtput w/ Migration':float,
-        #    'Migration Number':int
-        #}
 
         # Update bench output
         df = pd.read_csv(output_bench, dtype='float64', index_col=0)
@@ -217,9 +197,6 @@ def target_fun():
 
         # Terminate dstat when iteration is over
         dstat_proc.kill()
-
-        # Reset metadata when iteration is over
-        # META.reset()
 
         # Increment iteration
         CURR_ITERATION += 1
@@ -333,11 +310,6 @@ def main():
     t.start()
 
     FUSE(fuse_impl, MOUNTPOINT, foreground=True)
-
-    # Starting fuse
-    # fuse_proc = mp.Process(target=FUSE, args=(fuse_impl, mountpoint),
-    #                       kwargs={'foreground': True})
-    # fuse_proc.start()
 
 
 def str2bool(v):

@@ -53,17 +53,15 @@ class Metadata():
 
     def add_read(self, file):
         if(file in self.files):
-            # print("PPPPPPPPP")
-            # print(self.files[file]['accesses'])
             self.files[file]['accesses'] += 1
-            # print(self.files[file]['accesses'])
+
             if(self.last_reads.full()):
                 self.last_reads.get()
             self.last_reads.put(file)
 
     def add_file(self, file_name, file_length):
         cloud_id, cloud_name = self.choose_cloud_for_insertion(file_length)
-        # self.files[file_name] = [0, file_length, cloud_name]
+
         self.files[file_name] = self.manager.dict({
             'cloud': cloud_name,
             'length': file_length,
@@ -72,9 +70,7 @@ class Metadata():
 
     def del_file(self, file_name):
         file = self.files.pop(file_name)
-        # cloud_id = self.clouds.get_cloud_id_by_name(file[2])
         cloud_id = self.clouds.get_cloud_id_by_name(file['cloud'])
-        # self.clouds.inc_dec_used_space(cloud_id, -file[1])
         self.clouds.inc_dec_used_space(cloud_id, -file['length'])
 
     def rename_file(self, old, new):
@@ -82,7 +78,6 @@ class Metadata():
         self.files[new] = file
 
     def add_file_to_cloud(self, file_name, file_length, cloud_name):
-        # print(cloud_name)
         if file_name not in self.files:
             self.files[file_name] = self.manager.dict({
                 'cloud': cloud_name,
@@ -144,30 +139,10 @@ class Metadata():
         self.clouds.inc_dec_used_space(cloud_id, diff)
         file['length'] += diff
 
-    # def update_file_reads(self, file):
-    #     if(file in self.files):
-    #         now = datetime.now()
-    #         f = self.files.get(file)
-    #         #isto
-    #         accesses = [ocorr for ocorr in f.accesses if (now - ocorr < timedelta(seconds = CUT_TIME_SECONDS))]
-    #         f.accesses = accesses
-    #         # ou isto (otimizacao para listas muito grandes)
-    #         # i = 0
-    #         # for ocorr in f.accesses:
-    #         #     if now - ocorr >= timedelta(seconds = 60*1):
-    #         #         i+=1
-    #         #     else: break
-    #         # f.accesses = f.accesses[i:]
-
-    # def update_all(self):
-    #     for file in self.files:
-    #         self.update_file_reads(file)
-
     def choose_cloud_for_insertion(self, file_length):
         return self.clouds.choose_cloud_for_insertion(file_length)
 
     def cloud_outliers(self, cloud_name, limit):
-        # cloud_files_info = [(file.name, len(file.accesses)) for file in self.files.values() if file.provider == cloud_name]
         
         new_limit = limit
 
@@ -188,7 +163,7 @@ class Metadata():
             iqr = q3 - q1
             lower_bound = q1 - (1.5 * iqr) 
             upper_bound = q3 + (1.5 * iqr) 
-            # print((lower_bound, upper_bound))
+
             new_lower_outliers = [x[0] for x in cloud_files_info
                                                 if x[1] < lower_bound]
             lower_outliers += new_lower_outliers
@@ -204,14 +179,13 @@ class Metadata():
             else:
                 new_limit = limit
             
-        # print((lower_outliers, upper_outliers))
         return (lower_outliers, upper_outliers, new_limit)
 
 
     def migration_data(self):
         self.reset_files()
         clouds_migration_data = []
-        # self.update_all()
+
         limit = -1
         for cloud_id in range(0, len(self.clouds)):
             (lower_outliers, upper_outliers, new_limit) = self.cloud_outliers(
@@ -231,8 +205,6 @@ class Metadata():
         return clouds_migration_data
 
     def migration_data_rl(self, positions):
-        # self.update_all()
-
         clouds_migration_data = []
         self.reset_files()
        

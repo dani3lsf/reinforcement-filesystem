@@ -29,17 +29,12 @@ class Environment(object):
     """
     def __init__(self, numBins, numSlots, numDescriptors, fileSize, metadata):
 
-        # self.w = Watcher('mops/mp1', 'mops/mp2')
-
         # Environment properties
         self.numBins = numBins
         self.numSlots = numSlots
         self.numDescriptors = numDescriptors
         self.cells = {0: (8000000, []), 1: (4000000, []) }
         self.initial_cloud_size = [8000000,40000000]
-        # self.cells = np.empty((numBins, numSlots))
-        # self.cells[:] = np.nan
-        # self.service_properties = [{"size": 1} for _ in range(numDescriptors)]
 
         # Placement properties
         self.serviceLength = 0
@@ -88,19 +83,8 @@ class Environment(object):
             v2 = int(re.findall('\d+', k1)[0])
             access[v2] = v1
 
-        # access = [0,0,45,7,0,0,26,12,67,0,0,0,0,0,0,
-        #           0,0,45,7,0,0,26,12,62,0,0,0,34,0,0,
-        #           34,0,0,9,100,0,0,0,0,54,12,0,0,0,0,
-        #           34,45,1,0,0,0,0,0,0,0,23,120,73,0,0,
-        #           0,0,0,0,0,67,12,90,34,0,0,0,0,0,0,
-        #           0,0,0,0,0,0,0,0,0,0,0,0,0,0,70,
-        #           50,23,78,0,0,0,45,19,49,120
-        #           ]
-
-        # print(access)
         for i in range(self.numDescriptors):
             if i in pkts:
-                # self.watcher.get_nr_of_reads('dummy' + i)
                 suma += bin_speed[pkts[i]] * access[i]
                 total += access[i]
 
@@ -110,16 +94,6 @@ class Environment(object):
             reward = 5
         else:
             reward = np.power(5, 5 / next_average)
-            # reward = 200 * 1/next_average
-            # reward = -5 * (np.log(next_average)/np.log(2)) + 35
-
-        # print(next_average)
-        # reward = np.sum(np.power(100, occupancy))
-        # print(reward)
-
-        # print(reward)
-
-        # reward = next_average * 100;
 
         return reward
 
@@ -174,10 +148,6 @@ class Environment(object):
         print(high)
         print(wide)
 
-        # Plot slot labels
-        # for slot in range(max(self.initial_cloud_size)):
-        # x = wide * slot + slot * margin + margin_ext
-        # plt.text(x + 0.5 * wide, -3, "slot{}".format(slot), ha="center", family='sans-serif', size=8)
 
         # Plot bin labels & place empty boxes
         for bin in range(self.numBins):

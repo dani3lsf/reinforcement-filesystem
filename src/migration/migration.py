@@ -22,7 +22,6 @@ class Migration(threading.Thread):
         threading.Thread.__init__(self)
         self.daemon = False
         self.stopped = threading.Event()
-        # self.interval = interval
         self.metadata = metadata
         self.providers = providers
         self.migration_data = migration_data
@@ -63,11 +62,8 @@ class Migration(threading.Thread):
         if n_bytes_written is False:
             raise Exception
         # 5- del da cloud frm
-
-       
         result = self.providers[from_cloud].unlink(path)
                 
-
         if result is False:
             raise Exception
 
@@ -123,8 +119,6 @@ class Migration(threading.Thread):
         os.remove(TEMP_DIR + file_name)
 
     def migrate(self):
-        # print("STARTING MIGRATION")
-        # migration_data = self.metadata.migration_data()
         print(self.migration_data)
 
         bytes_moved = 0
@@ -153,8 +147,6 @@ class Migration(threading.Thread):
         return (bytes_moved, nr_files)
 
     def run(self):
-        # while not self.stopped.wait(self.interval.total_seconds()):
-
         ti = time.time()
         self.metadata.acquire_lock()
 

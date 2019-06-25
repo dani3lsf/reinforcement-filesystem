@@ -72,11 +72,6 @@ class GoogleDrive:
         if path[1:] not in self.items:
             return None
         else:
-            # return {
-            #     'size': self.items[path[1:]][1],
-            #     'created': self.items[path[1:]][2],
-            #     'modified': self.items[path[1:]][3]
-            #     }
             ret = {
                 'size': self.items[path[1:]][1],
                 'created': self.items[path[1:]][2],
