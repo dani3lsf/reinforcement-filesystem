@@ -58,7 +58,7 @@ class Dropbox:
                 'size': self.items[path[1:]][1],
                 'created': self.items[path[1:]][2],
                 'modified': self.items[path[1:]][3],
-                }
+            }
         return ret
 
     def open(self, path,  delay=False):
@@ -89,25 +89,23 @@ class Dropbox:
 
     def write(self, path, buf, offset, fh,overwrite=True):
         mode = (dropbox.files.WriteMode.overwrite
-                 if overwrite
-                 else dropbox.files.WriteMode.add)
+                if overwrite
+                else dropbox.files.WriteMode.add)
 
         CHUNK_SIZE = 64000
         FILE_SIZE = len(buf)
 
         if FILE_SIZE <= CHUNK_SIZE:
-             ret = self.api_client.files_upload(f=buf, path=path, mode=mode, mute=True)
-
+            ret = self.api_client.files_upload(f=buf, path=path, mode=mode, mute=True)
         else:
-
             upload_session_start_result = self.api_client.files_upload_session_start(buf[offset: offset + CHUNK_SIZE])
             cursor = dropbox.files.UploadSessionCursor(session_id=upload_session_start_result.session_id, offset = offset)
             commit = dropbox.files.CommitInfo(path,mode=mode)
             cursor.offset = cursor.offset + CHUNK_SIZE
 
             while cursor.offset < FILE_SIZE:
-                if (( FILE_SIZE - cursor.offset) <= CHUNK_SIZE):
-                    ret= self.api_client.files_upload_session_finish(buf[cursor.offset: cursor.offset + CHUNK_SIZE],
+                if ((FILE_SIZE - cursor.offset) <= CHUNK_SIZE):
+                    ret = self.api_client.files_upload_session_finish(buf[cursor.offset: cursor.offset + CHUNK_SIZE],
                                                     cursor,
                                                     commit)
                 else:

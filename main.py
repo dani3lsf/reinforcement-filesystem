@@ -62,7 +62,7 @@ def target_fun():
     global FILE_SIZE, NUMBER_FILES, MOUNTPOINT, OUTPUT_PATH
 
     # time.sleep(10)
-    
+
     # Remove results folder and files if it exists
     if os.path.isdir(OUTPUT_PATH):
         shutil.rmtree(OUTPUT_PATH)
@@ -135,15 +135,15 @@ def target_fun():
         print("Starting collection phase...")
 
         script = 'python3 benchmark.py -d %s -c %r -t %d -r %d -i %d -o %s -m %s > /dev/'\
-                 'null' % (dist, ch, seed, C_RUNTIME, CURR_ITERATION, output_bench,
-                           MOUNTPOINT)
+                 'null' % (dist, ch, seed, C_RUNTIME, CURR_ITERATION,
+                           output_bench, MOUNTPOINT)
 
         proc = subprocess.Popen(script, shell=True)
 
         outs, errs = proc.communicate()
-	
+
         proc.kill()
-	
+
         include_it_info_to_output(writer)
 
         # DECISION PHASE
@@ -151,18 +151,16 @@ def target_fun():
 
 
         end_time = time.time() + (D_RUNTIME * 60)
-        
-             
+
         if TRAIN:
             positions = RL.get_positions()
             cloud_migration_data = META.migration_data_rl(positions)
-
         else:
             cloud_migration_data = META.migration_data()
 
         while (time.time() < end_time):
           continue
-            
+
         mig_duration = mp.Value('i')
         mig_files_number = mp.Value('i')
 
@@ -191,9 +189,8 @@ def target_fun():
                                                  'Throughtput'],
                                            migration_time)
         df.at[float(CURR_ITERATION), 'Migration Number'] = migration_nf
-        df.at[float(CURR_ITERATION), 'Distribution'] = dists.index(dist) 
+        df.at[float(CURR_ITERATION), 'Distribution'] = dists.index(dist)
         df.to_csv(output_bench, index=True, header=True)
-
 
         # Terminate dstat when iteration is over
         dstat_proc.kill()
@@ -204,8 +201,9 @@ def target_fun():
     finish_output(writer)
 
     if TRAIN:
-        rl_process.terminate() 
+        rl_process.terminate()
         rl_process.join()
+
 
 def initiate_output():
     output_file = OUTPUT_PATH + "/heatmap.json"
@@ -215,7 +213,6 @@ def initiate_output():
 
 
 def include_it_info_to_output(writer):
-
     files_cloud = META.get_files_cloud()
     hits = META.get_files_accesses()
 
@@ -228,6 +225,7 @@ def include_it_info_to_output(writer):
         writer.write(string_hits + "\n}\n")
     else:
         writer.write(string_hits + "\n},\n")
+
 
 def finish_output(writer):
     output_file = OUTPUT_PATH + "/heatmap.json"
@@ -314,6 +312,7 @@ def main():
 
 def str2bool(v):
     return v.lower() in ('true', '1')
+
 
 if __name__ == '__main__':
     signal.signal(signal.SIGTERM, signal_handler)

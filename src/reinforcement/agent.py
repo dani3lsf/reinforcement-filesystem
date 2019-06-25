@@ -173,8 +173,3 @@ class Agent:
             capped_gvs = [(tf.clip_by_norm(grad, 1.), var) for grad, var in gvs if grad is not None]  # L2 clip
 
             self.train_step = opt.apply_gradients(capped_gvs)
-
-
-if __name__ == "__main__":
-
-    pass

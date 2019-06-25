@@ -36,22 +36,22 @@ class Migration(threading.Thread):
 
         path = '/' + file_name
         file = self.metadata[file_name]
-        # 1- Open fh na frm
+        # 1 - Open fh na frm
         fhr = self.providers[from_cloud].open(path,delay=False)
-        # 2- Read com o fh na frm
+        # 2 - Read com o fh na frm
         bytes_read = self.providers[from_cloud].read(fhr, path, file['length'], 0, delay=False)
-        
+
         self.providers[from_cloud].release(fhr)
 
         if bytes_read is None:
             raise Exception
-        # 3- Create na cloud to
+        # 3 - Create na cloud to
 
         fhw = self.providers[to_cloud].create(path, delay=False)
 
         if fhw is False:
             raise Exception
-        # 4- write na cloud to
+        # 4 - write na cloud to
 
         try:
             n_bytes_written = self.providers[to_cloud].write(path, bytes_read, 0, fhw)
@@ -61,9 +61,9 @@ class Migration(threading.Thread):
 
         if n_bytes_written is False:
             raise Exception
-        # 5- del da cloud frm
+        # 5 - del da cloud frm
         result = self.providers[from_cloud].unlink(path)
-                
+
         if result is False:
             raise Exception
 
@@ -119,7 +119,6 @@ class Migration(threading.Thread):
         os.remove(TEMP_DIR + file_name)
 
     def migrate(self):
-        print(self.migration_data)
 
         bytes_moved = 0
         nr_files = 0

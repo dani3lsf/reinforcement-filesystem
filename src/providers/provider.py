@@ -8,7 +8,6 @@ import io
 
 from time import time
 
-
 class Provider:
     def __init__(self, pd):
         self.pd = pd

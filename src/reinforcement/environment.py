@@ -148,7 +148,6 @@ class Environment(object):
         print(high)
         print(wide)
 
-
         # Plot bin labels & place empty boxes
         for bin in range(self.numBins):
             y = -high * (bin + 1) - (bin) * margin - margin_ext

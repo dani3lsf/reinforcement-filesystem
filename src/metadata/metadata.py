@@ -143,7 +143,6 @@ class Metadata():
         return self.clouds.choose_cloud_for_insertion(file_length)
 
     def cloud_outliers(self, cloud_name, limit):
-        
         new_limit = limit
 
         cloud_files_info = [(file_name, file['accesses'])
@@ -154,18 +153,18 @@ class Metadata():
         upper_outliers = []
         lower_outliers = [file_name for (file_name, file_accesses) in cloud_files_info if file_accesses <= limit]
         del cloud_files_info[0:len(lower_outliers)]
-        
+
         accesses = [x[1] for x in cloud_files_info]
 
         if accesses != []:
             q1, q3 = np.percentile(accesses, [25, 75])
             avg = np.mean(accesses)
             iqr = q3 - q1
-            lower_bound = q1 - (1.5 * iqr) 
-            upper_bound = q3 + (1.5 * iqr) 
+            lower_bound = q1 - (1.5 * iqr)
+            upper_bound = q3 + (1.5 * iqr)
 
             new_lower_outliers = [x[0] for x in cloud_files_info
-                                                if x[1] < lower_bound]
+                                  if x[1] < lower_bound]
             lower_outliers += new_lower_outliers
             upper_outliers = [x[0] for x in cloud_files_info
                               if x[1] > upper_bound]
@@ -178,7 +177,7 @@ class Metadata():
                 new_limit = max([x[1] for x in cloud_files_info])
             else:
                 new_limit = limit
-            
+
         return (lower_outliers, upper_outliers, new_limit)
 
 
@@ -207,7 +206,7 @@ class Metadata():
     def migration_data_rl(self, positions):
         clouds_migration_data = []
         self.reset_files()
-       
+
         for file_name, file_info in self.files.items():
             id = int(re.findall('\d+', file_name)[0])
             pos = positions[id]
@@ -229,3 +228,4 @@ class Metadata():
             self.clouds.inc_dec_used_space(to, file['length'])
             self.clouds.inc_dec_used_space(frm, -file['length'])
             file['cloud'] = to_cloud['name']
+

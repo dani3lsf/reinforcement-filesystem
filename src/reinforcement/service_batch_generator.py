@@ -56,4 +56,3 @@ if __name__ == "__main__":
     env = ServiceBatchGenerator(batch_size, minServiceLength, maxServiceLength, numDescriptors)
     env.getNewState()
 
-
